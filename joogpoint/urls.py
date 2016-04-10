@@ -33,17 +33,21 @@ from django.contrib import admin
 from django.conf.urls import url, include
 import establishments.views
 import users.views
+import polls.views, polls.urls
 from rest_framework.routers import DefaultRouter
 
 # Create a router and register our viewsets with it.
 router = DefaultRouter()
 router.register(r'establishments', establishments.views.EstablishmentViewSet)
 router.register(r'users', users.views.UserViewSet)
+router.register(r'playlists', polls.views.PlaylistViewSet)
+router.register(r'tracks', polls.views.TrackViewSet)
 
 # The API URLs are now determined automatically by the router.
 # Additionally, we include the login URLs for the browsable API.
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^', include(router.urls)),
+    url(r'^spotify/', include(polls.urls)),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]

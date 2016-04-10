@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="dataSourceStorageLocal">
+    <data-source name="Django default" uuid="b02664a2-1561-4b22-9091-c8dd2599375d">
+      <user-name>postgres</user-name>
+      <user-password>df9bdf98df99df9e</user-password>
+      <schema-pattern>joogpoint_db.pg_catalog joogpoint_db.public</schema-pattern>
+      <default-schemas>joogpoint_db.public</default-schemas>
+    </data-source>
+  </component>
+</project>
