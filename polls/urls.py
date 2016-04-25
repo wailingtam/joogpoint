@@ -8,8 +8,10 @@ urlpatterns = [
 ]
 
 playlist_list = PlaylistViewSet.as_view({
-    'get': 'list',
-    'post': 'create'
+    'get': 'retrieve',
+    'put': 'update',
+    'patch': 'partial_update',
+    'delete': 'destroy'
 })
 
 track_list = TrackViewSet.as_view({

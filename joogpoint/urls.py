@@ -33,8 +33,9 @@ from django.contrib import admin
 from django.conf.urls import url, include
 import establishments.views
 import users.views
-import polls.views, polls.urls
+import polls.views, polls.urls, users.urls
 from rest_framework.routers import DefaultRouter
+from rest_framework.authtoken import views
 
 # Create a router and register our viewsets with it.
 router = DefaultRouter()
@@ -49,5 +50,7 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^', include(router.urls)),
     url(r'^spotify/', include(polls.urls)),
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    url(r'^accounts/', include(users.urls)),
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^api-token-auth/', views.obtain_auth_token),
 ]

@@ -3,6 +3,8 @@ from django.shortcuts import get_object_or_404, get_list_or_404
 from django.contrib.auth.models import User
 from rest_framework import viewsets, generics, filters
 from .serializers import UserSerializer#, UserProfileSerializer
+from django.contrib.auth import authenticate, login, logout
+from django.http import HttpResponseRedirect
 # from .models import UserProfile
 
 
@@ -43,7 +45,7 @@ from .serializers import UserSerializer#, UserProfileSerializer
 #     queryset = User.objects.all()
 #     serializer_class = UserSerializer
 
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
+class UserViewSet(viewsets.ModelViewSet):
     """
     This viewset automatically provides `list` and `detail` actions.
     """
@@ -51,6 +53,30 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserSerializer
     filter_backends = (filters.DjangoFilterBackend,)
     filter_fields = ('username',)
+
+
+# def user_login(request):
+#     username = request.POST['username']
+#     password = request.POST['password']
+#     user = authenticate(username=username, password=password)
+#     if user is not None:
+#         if user.is_active:
+#             login(request, user)
+#             # Redirect to a success page.
+#             return HttpResponseRedirect("/account/loggedin/")
+#         # else:
+#             # Return a 'disabled account' error message
+#     else:
+#         # Return an 'invalid login' error message.
+#         # Show an error page
+#         return HttpResponseRedirect("/account/invalid/")
+#
+#
+# def user_logout(request):
+#     logout(request)
+#     # Redirect to a success page.
+#     return HttpResponseRedirect("/account/loggedout/")
+
 
 # class UserProfileList(generics.ListCreateAPIView):
 #     queryset = UserProfile.objects.all()

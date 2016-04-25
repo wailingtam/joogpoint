@@ -10,14 +10,14 @@
       <schema id="2" parent="1" name="public">
         <object-id>2200</object-id>
         <comment>standard public schema</comment>
-        <introspection-state-number>1549</introspection-state-number>
-        <introspection-timestamp>2016-04-09.20:56:53.526</introspection-timestamp>
+        <introspection-state-number>1570</introspection-state-number>
+        <introspection-timestamp>2016-04-24.23:13:22.890</introspection-timestamp>
       </schema>
       <schema id="3" parent="1" name="pg_catalog">
         <object-id>11</object-id>
         <comment>system catalog schema</comment>
         <introspection-state-number>998</introspection-state-number>
-        <introspection-timestamp>2016-04-09.20:56:53.711</introspection-timestamp>
+        <introspection-timestamp>2016-04-24.23:13:23.107</introspection-timestamp>
       </schema>
       <sequence id="4" parent="2" name="auth_group_id_seq">
         <object-id>17889</object-id>
@@ -109,7 +109,7 @@
       </table>
       <table id="26" parent="2" name="establishments_establishment">
         <object-id>18135</object-id>
-        <state-number>1543</state-number>
+        <state-number>1559</state-number>
       </table>
       <table id="27" parent="2" name="polls_playlist">
         <object-id>18186</object-id>
@@ -20601,45 +20601,43 @@ model</columns>
         <mandatory>1</mandatory>
         <data-type>varchar(100)</data-type>
       </column>
-      <column id="3669" parent="26" name="street">
+      <column id="3669" parent="26" name="city">
         <state-number>1520</state-number>
         <mandatory>1</mandatory>
         <data-type>varchar(100)</data-type>
       </column>
-      <column id="3670" parent="26" name="number">
+      <column id="3670" parent="26" name="postcode">
+        <state-number>1520</state-number>
+        <mandatory>1</mandatory>
+        <data-type>varchar(100)</data-type>
+      </column>
+      <column id="3671" parent="26" name="country">
+        <state-number>1520</state-number>
+        <mandatory>1</mandatory>
+        <data-type>varchar(100)</data-type>
+      </column>
+      <column id="3672" parent="26" name="latitude">
+        <state-number>1570</state-number>
+        <data-type>double precision</data-type>
+      </column>
+      <column id="3673" parent="26" name="longitude">
+        <state-number>1569</state-number>
+        <data-type>double precision</data-type>
+      </column>
+      <column id="3674" parent="26" name="owner_id">
         <state-number>1520</state-number>
         <mandatory>1</mandatory>
         <data-type>integer</data-type>
       </column>
-      <column id="3671" parent="26" name="city">
-        <state-number>1520</state-number>
+      <column id="3675" parent="26" name="spotify_username">
+        <state-number>1557</state-number>
         <mandatory>1</mandatory>
         <data-type>varchar(100)</data-type>
       </column>
-      <column id="3672" parent="26" name="postcode">
-        <state-number>1520</state-number>
+      <column id="3676" parent="26" name="address">
+        <state-number>1559</state-number>
         <mandatory>1</mandatory>
         <data-type>varchar(100)</data-type>
-      </column>
-      <column id="3673" parent="26" name="country">
-        <state-number>1520</state-number>
-        <mandatory>1</mandatory>
-        <data-type>varchar(100)</data-type>
-      </column>
-      <column id="3674" parent="26" name="latitude">
-        <state-number>1520</state-number>
-        <mandatory>1</mandatory>
-        <data-type>double precision</data-type>
-      </column>
-      <column id="3675" parent="26" name="longitude">
-        <state-number>1520</state-number>
-        <mandatory>1</mandatory>
-        <data-type>double precision</data-type>
-      </column>
-      <column id="3676" parent="26" name="owner_id">
-        <state-number>1520</state-number>
-        <mandatory>1</mandatory>
-        <data-type>integer</data-type>
       </column>
       <index id="3677" parent="26" name="establishments_establishment_pkey">
         <object-id>18142</object-id>

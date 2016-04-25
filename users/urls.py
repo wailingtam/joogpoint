@@ -1,5 +1,5 @@
-# from django.conf.urls import url
-# from . import views
+from django.conf.urls import url
+from . import views
 #
 #
 # urlpatterns = [
@@ -17,8 +17,17 @@ from users.views import UserViewSet
 from rest_framework import renderers
 
 user_list = UserViewSet.as_view({
-    'get': 'list'
+    'get': 'list',
+    'post': 'create'
 })
 user_detail = UserViewSet.as_view({
-    'get': 'retrieve'
+    'get': 'retrieve',
+    'put': 'update',
+    'patch': 'partial_update',
+    'delete': 'destroy'
 })
+
+urlpatterns = [
+    # url(r'^login/$', views.user_login),
+    # url(r'^logout/$', views.user_logout),
+]
