@@ -1,34 +1,9 @@
 from establishments.models import Establishment
 from establishments.serializers import EstablishmentSerializer
-from rest_framework import generics, permissions, viewsets
+from rest_framework import permissions, viewsets
 from establishments.permissions import IsOwnerOrReadOnly
-from rest_framework.decorators import api_view
+from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
-
-
-# @api_view(['GET'])
-# def api_root(request, format=None):
-#     return Response({
-#         'users': reverse('user-list', request=request, format=format),
-#         'establishments': reverse('establishment-list', request=request, format=format)
-#     })
-
-
-# class EstablishmentList(generics.ListCreateAPIView):
-#     queryset = Establishment.objects.all()
-#     serializer_class = EstablishmentSerializer
-#     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly,)
-#
-#     # Associating establishments with users
-#     def perform_create(self, serializer):
-#         serializer.save(owner=self.request.user)
-#
-#
-# class EstablishmentDetail(generics.RetrieveUpdateDestroyAPIView):
-#     queryset = Establishment.objects.all()
-#     serializer_class = EstablishmentSerializer
-#     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly,)
 
 
 class EstablishmentViewSet(viewsets.ModelViewSet):
@@ -41,5 +16,12 @@ class EstablishmentViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,
                           IsOwnerOrReadOnly,)
 
+    # Associating establishments with users
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    @list_route()
+    def search(self, request):
+        data = Establishment.objects.filter(name__icontains=request.GET.get('name', '')).values('id', 'name', 'address',
+                                                                                                'postcode', 'city')
+        return Response(dict(results=list(data)))

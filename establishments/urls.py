@@ -18,6 +18,8 @@
 
 from establishments.views import EstablishmentViewSet
 from rest_framework import renderers
+from django.conf.urls import url
+from . import views, serializers
 
 establishment_list = EstablishmentViewSet.as_view({
     'get': 'list',
@@ -30,3 +32,10 @@ establishment_detail = EstablishmentViewSet.as_view({
     'patch': 'partial_update',
     'delete': 'destroy'
 })
+
+establishment_search = EstablishmentViewSet.as_view({
+    'get': 'search'
+})
+
+urlpatterns = [
+    ]
