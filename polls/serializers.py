@@ -3,11 +3,12 @@ from .models import Playlist, Track
 
 
 class PlaylistSerializer(serializers.HyperlinkedModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
     establishment = serializers.ReadOnlyField(source='establishment.name')
 
     class Meta:
         model = Playlist
-        fields = ('url', 'establishment')
+        fields = ('url', 'owner', 'establishment', 'spotify_url')
 
 
 class TrackSerializer(serializers.HyperlinkedModelSerializer):
@@ -15,4 +16,4 @@ class TrackSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Track
-        fields = ('url', 'playlist', 'votes')
+        fields = ('url', 'playlist', 'votes', 'spotify_url')

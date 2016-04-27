@@ -1,4 +1,7 @@
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from polls.models import Playlist
 
 
 class Establishment(models.Model):
@@ -17,3 +20,10 @@ class Establishment(models.Model):
 
     def __str__(self):
         return self.name
+
+
+# This code is triggered whenever a new establishment has been created and saved to the database
+@receiver(post_save, sender=Establishment)
+def create_playlist(sender, instance=None, created=False, **kwargs):
+    if created:
+        Playlist.objects.get_or_create(establishment=instance)

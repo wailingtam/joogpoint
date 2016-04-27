@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from establishments.models import Establishment
-
 # from .models import UserProfile
 
 
