@@ -20,3 +20,7 @@ track_list = TrackViewSet.as_view({
     'patch': 'partial_update',
     'delete': 'destroy'
 })
+
+# playlist_set_playlist = PlaylistViewSet.as_view({
+#     'put': 'change-playlist'
+# })
