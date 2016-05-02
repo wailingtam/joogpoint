@@ -16,7 +16,9 @@ Including another URLconf
 from django.contrib import admin
 from django.conf.urls import url, include
 import users.views, establishments.views, polls.views
-import polls.urls, users.urls, establishments.urls
+import polls.urls
+import users.urls
+import establishments.urls
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken import views
 

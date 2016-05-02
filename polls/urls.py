@@ -3,11 +3,12 @@ from rest_framework import renderers
 from django.conf.urls import url
 from . import views
 
-urlpatterns = [
-    url(r'^$', views.spotify_test),
-]
-
 playlist_list = PlaylistViewSet.as_view({
+    'get': 'list',
+    'post': 'create'
+})
+
+playlist_detail = PlaylistViewSet.as_view({
     'get': 'retrieve',
     'put': 'update',
     'patch': 'partial_update',
@@ -15,12 +16,20 @@ playlist_list = PlaylistViewSet.as_view({
 })
 
 track_list = TrackViewSet.as_view({
+    'get': 'list',
+    'post': 'create'
+})
+
+track_detail = TrackViewSet.as_view({
     'get': 'retrieve',
     'put': 'update',
     'patch': 'partial_update',
     'delete': 'destroy'
 })
 
-# playlist_set_playlist = PlaylistViewSet.as_view({
-#     'put': 'change-playlist'
-# })
+
+urlpatterns = [
+    url(r'^$', views.spotify_test),
+    url(r'^account-access/$', views.get_account_access),
+    url(r'^spotify-playlists/$', views.get_spotify_playlists),
+]

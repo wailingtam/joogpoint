@@ -26,4 +26,4 @@ class Establishment(models.Model):
 @receiver(post_save, sender=Establishment)
 def create_playlist(sender, instance=None, created=False, **kwargs):
     if created:
-        Playlist.objects.get_or_create(establishment=instance)
+        Playlist.objects.create(establishment=instance)
