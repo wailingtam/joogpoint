@@ -10,8 +10,9 @@ class Playlist (models.Model):
 
 class Track (models.Model):
     playlist = models.ForeignKey('Playlist', related_name='tracks')
-    spotify_url = models.URLField()
+    spotify_uri = models.CharField(max_length=36)
     votes = models.IntegerField(default=0)
+    order = models.IntegerField()
 
     class Meta:
-        unique_together = ('playlist', 'spotify_url')
+        unique_together = ('playlist', 'spotify_uri')

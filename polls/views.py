@@ -27,30 +27,37 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         if request.method == 'PUT':
             data = json.loads(request.body.decode('utf-8'))
             establ_pl = Playlist.objects.get(pk=pk)
-            username = establ_pl.establishment.spotify_username
-            scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
-            username = SPOTIFY_USERNAME
-            token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
-                                               client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
-            if token:
-                sp = spotipy.Spotify(auth=token)
-                # Get tracks from the original playlist
-                tracks = sp.user_playlist(data['owner'], data['spotify_id'], fields="name, tracks.items(track(uri))")
-                # Create a new playlist for the copy
-                pl = sp.user_playlist_create(username, "jp-" + tracks['name'], public=False)
-                # Get the tracks uris from the original playlist
-                tracks_uris = []
-                for tr in tracks['tracks']['items']:
-                    tracks_uris.append(tr['track']['uri'])
-                # Add tracks to the new playlist
-                snapshot_id = sp.user_playlist_add_tracks(username, pl['id'], tracks_uris)
-                # Save new playlist url
-                establ_pl.spotify_url = pl['external_urls']['spotify']
-                establ_pl.save()
+            if establ_pl.spotify_url != data['spotify_url']:
+                username = establ_pl.establishment.spotify_username
+                scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+                token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+                                                   client_secret=SPOTIFY_CLIENT_SECRET,
+                                                   redirect_uri=SPOTIFY_REDIRECT_URI)
+                if token:
+                    sp = spotipy.Spotify(auth=token)
+                    # Get tracks from the original playlist
+                    tracks = sp.user_playlist(data['owner'], data['spotify_url'],
+                                              fields="name, tracks.items(track(uri))")
+                    # Create a new playlist for the copy
+                    pl = sp.user_playlist_create(username, "jp-" + tracks['name'], public=False)
+                    # Remove tracks from previous playlist
+                    Track.objects.filter(playlist_id=pk).delete()
+                    # Get the tracks uris from the original playlist and create their track instances
+                    tracks_uris = []
+                    track_order = 0
+                    for tr in tracks['tracks']['items']:
+                        tracks_uris.append(tr['track']['uri'])
+                        Track.objects.create(playlist_id=pk, spotify_uri=tr['track']['uri'], order=track_order)
+                        track_order += 1
+                    # Add tracks to the new playlist
+                    snapshot_id = sp.user_playlist_add_tracks(username, pl['id'], tracks_uris)
+                    # Save new playlist url
+                    establ_pl.spotify_url = pl['external_urls']['spotify']
+                    establ_pl.save()
 
-            else:
-                return HttpResponse("Can't get token for", username)
-            return HttpResponse(status=200)
+                else:
+                    return HttpResponse("Can't get token for", username)
+            return HttpResponse(establ_pl.spotify_url, status=200)
 
 
 class TrackViewSet(viewsets.ModelViewSet):
@@ -82,7 +89,6 @@ def get_account_access(request):
 def get_spotify_playlists(request):
     username = Establishment.objects.get(pk=request.GET.get('establishment')).spotify_username
     scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
-    username = SPOTIFY_USERNAME
     token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
                                        client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
     if token:
@@ -91,7 +97,7 @@ def get_spotify_playlists(request):
         playlists = sp.user_playlists(username)
         for playlist in playlists['items']:
             pl = {
-                'id': playlist['id'],
+                'spotify_url': playlist['external_urls']['spotify'],
                 'name': playlist['name'],
                 'owner': playlist['owner']['id'],
                 'image': playlist['images'][0]['url']
@@ -102,6 +108,20 @@ def get_spotify_playlists(request):
 
     return JsonResponse(data)
 
+
+def get_playlist_tracks(request):
+    username = Establishment.objects.get(pk=request.GET.get('establishment')).spotify_username
+    scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+    token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+                                       client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
+    if token:
+        sp = spotipy.Spotify(auth=token)
+        tracks = sp.user_playlist(request.GET.get('owner'), request.GET.get('spotify_url'),
+                                  fields="name, images, tracks.items(track(name, artists, album(images)))")
+    else:
+        return HttpResponse("Can't get token for", username)
+
+    return JsonResponse(tracks)
 
 # @receiver(post_save, sender=Playlist)
 # def save_tracks(sender, **kwargs):
