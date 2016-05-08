@@ -8,9 +8,10 @@ from django.http import JsonResponse, HttpResponse
 from rest_framework.decorators import detail_route, list_route
 from django.dispatch import receiver
 from django.db.models.signals import post_save
-from polls.credentials import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REDIRECT_URI, SPOTIFY_USERNAME
+from polls.credentials import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REDIRECT_URI
 import spotipy
 import spotipy.util as util
+from rest_framework.decorators import api_view
 
 
 class PlaylistViewSet(viewsets.ModelViewSet):
@@ -80,12 +81,12 @@ def spotify_test(request):
 def get_account_access(request):
     username = Establishment.objects.get(pk=request.GET.get('establishment')).spotify_username
     scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
-    username = SPOTIFY_USERNAME
     token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
                                        client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
     return HttpResponse(token)
 
 
+@api_view()
 def get_spotify_playlists(request):
     username = Establishment.objects.get(pk=request.GET.get('establishment')).spotify_username
     scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
@@ -100,7 +101,7 @@ def get_spotify_playlists(request):
                 'spotify_url': playlist['external_urls']['spotify'],
                 'name': playlist['name'],
                 'owner': playlist['owner']['id'],
-                'image': playlist['images'][0]['url']
+                'image': playlist['images']
             }
             data['results'].append(pl)
     else:
@@ -109,6 +110,7 @@ def get_spotify_playlists(request):
     return JsonResponse(data)
 
 
+@api_view()
 def get_playlist_tracks(request):
     username = Establishment.objects.get(pk=request.GET.get('establishment')).spotify_username
     scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
@@ -122,6 +124,51 @@ def get_playlist_tracks(request):
         return HttpResponse("Can't get token for", username)
 
     return JsonResponse(tracks)
+
+
+@api_view()
+def song_search(request):
+    # Encode spaces with the hex code %20 or +,
+    # genre  Use double quotation marks (%22) around the genre keyword string if it contains spaces.
+    # Limit Default: 10. Minimum: 1. Maximum: 50
+    sp = spotipy.Spotify()
+    query = request.GET.get('value')
+    results = sp.search(q=query, type='track')
+    data = {
+        'tracks': [],
+        'next': results['tracks']['next']
+    }
+    for r in results['tracks']['items']:
+        tr = {
+            'artists': []
+        }
+        for a in r['artists']:
+            tr['artists'].append(a['name'])
+        tr['images'] = r['album']['images']
+        tr['explicit'] = r['explicit']
+        tr['spotify_id'] = r['id']
+        tr['name'] = r['name']
+        data['tracks'].append(tr)
+    return JsonResponse(data)
+
+
+@api_view(['POST'])
+def submit_song_request(request):
+    if request.method == 'POST':
+        username = Establishment.objects.get(pk=request.data['establishment']).spotify_username
+        scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+        token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+                                           client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
+        playlist = Establishment.objects.get(pk=request.data['establishment']).playlist.spotify_url
+
+        if token:
+            sp = spotipy.Spotify(auth=token)
+            resp = sp.user_playlist_add_tracks(user=username, playlist_id=playlist,
+                                               tracks=[request.data['spotify_id']])
+            return JsonResponse(resp)
+        else:
+            return HttpResponse("Can't get token for", username)
+
 
 # @receiver(post_save, sender=Playlist)
 # def save_tracks(sender, **kwargs):
