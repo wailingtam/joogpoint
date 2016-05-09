@@ -9,5 +9,5 @@ class EstablishmentSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Establishment
         fields = ('url', 'owner', 'name', 'address', 'city', 'postcode', 'country', 'latitude', 'longitude',
-                  'spotify_username', 'playlist')
+                  'spotify_username', 'lastfm_username', 'playlist')
 

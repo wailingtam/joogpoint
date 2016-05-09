@@ -14,6 +14,7 @@ class Establishment(models.Model):
     latitude = models.FloatField(blank=True)
     longitude = models.FloatField(blank=True)
     spotify_username = models.CharField(max_length=100)
+    lastfm_username = models.CharField(max_length=100)
 
     class Meta:
         ordering = ('country', 'city', 'name')

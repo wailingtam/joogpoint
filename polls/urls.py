@@ -34,5 +34,7 @@ urlpatterns = [
     url(r'^spotify-playlists/$', views.get_spotify_playlists),
     url(r'^playlist-tracks/$', views.get_playlist_tracks),
     url(r'^song-search/$', views.song_search),
-    url(r'^^song-request/$', views.submit_song_request)
+    url(r'^song-request/$', views.submit_song_request),
+    url(r'^current-song/$', views.get_most_recent_track),
+    url(r'^vote/$', views.upvote)
 ]

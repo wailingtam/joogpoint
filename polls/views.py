@@ -8,7 +8,7 @@ from django.http import JsonResponse, HttpResponse
 from rest_framework.decorators import detail_route, list_route
 from django.dispatch import receiver
 from django.db.models.signals import post_save
-from polls.credentials import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REDIRECT_URI
+from polls.credentials import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REDIRECT_URI, LASTFM_API_KEY
 import spotipy
 import spotipy.util as util
 from rest_framework.decorators import api_view
@@ -140,13 +140,13 @@ def song_search(request):
     }
     for r in results['tracks']['items']:
         tr = {
-            'artists': []
+            'artist': []
         }
         for a in r['artists']:
-            tr['artists'].append(a['name'])
+            tr['artist'].append(a['name'])
         tr['images'] = r['album']['images']
         tr['explicit'] = r['explicit']
-        tr['spotify_id'] = r['id']
+        tr['spotify_uri'] = r['uri']
         tr['name'] = r['name']
         data['tracks'].append(tr)
     return JsonResponse(data)
@@ -154,21 +154,113 @@ def song_search(request):
 
 @api_view(['POST'])
 def submit_song_request(request):
-    if request.method == 'POST':
-        username = Establishment.objects.get(pk=request.data['establishment']).spotify_username
-        scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
-        token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
-                                           client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
-        playlist = Establishment.objects.get(pk=request.data['establishment']).playlist.spotify_url
+    username = Establishment.objects.get(pk=request.data['establishment']).spotify_username
+    scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+    token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+                                       client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
+    playlist = Establishment.objects.get(pk=request.data['establishment']).playlist
 
-        if token:
-            sp = spotipy.Spotify(auth=token)
-            resp = sp.user_playlist_add_tracks(user=username, playlist_id=playlist,
-                                               tracks=[request.data['spotify_id']])
-            return JsonResponse(resp)
-        else:
-            return HttpResponse("Can't get token for", username)
+    if token:
+        # add track to spotify playlist
+        sp = spotipy.Spotify(auth=token)
+        resp = sp.user_playlist_add_tracks(user=username, playlist_id=playlist.spotify_url,
+                                           tracks=[request.data['spotify_uri']])
+        # save track with 1 vote
+        no_songs = Track.objects.filter(playlist=playlist.id).count()
+        Track.objects.create(playlist_id=playlist.id, spotify_uri=request.data['spotify_uri'], order=no_songs,
+                             votes=1)
+        # sort playlist
 
+        return JsonResponse(resp)
+    else:
+        return HttpResponse("Can't get token for", username)
+
+
+@api_view()
+def get_most_recent_track(request):
+    return JsonResponse(get_most_recent_track2(request.GET.get('establishment')))
+
+
+def get_most_recent_track2(establishment_pk):
+    username = Establishment.objects.get(pk=establishment_pk).lastfm_username
+    results = urllib.request.urlopen("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=" +
+                                     username + "&api_key=" + LASTFM_API_KEY + "&format=json&limit=1"
+                                     ).read().decode("utf-8")
+    dic = json.loads(results)
+    data = {
+        'now_playing': True,
+        'spotify_uri': ""
+    }
+    for t in dic['recenttracks']['track']:
+        if len(dic['recenttracks']['track']) > 1 and '@attr' in t \
+                or len(dic['recenttracks']['track']) == 1:
+                data['name'] = t['name']
+                data['artist'] = t['artist']['#text']
+                data['album'] = t['album']['#text']
+                if '@attr' not in t:
+                    data['now_playing'] = False
+
+    # Seach song on Spotify
+    sp = spotipy.Spotify()
+    query = " artist:" + str(data['artist']) + " track:" + str(data['name'])
+    results = sp.search(q=query, type='track')
+    tracks = []
+    for r in results['tracks']['items']:
+        tr = {
+            'artist': []
+        }
+        for a in r['artists']:
+            tr['artist'].append(a['name'])
+        tr['spotify_uri'] = r['uri']
+        tr['name'] = r['name']
+        tracks.append(tr)
+
+    # Search song in saved tracks
+    for t in tracks:
+        if Track.objects.filter(spotify_uri=t['spotify_uri'],
+                                playlist=Establishment.objects.get(pk=establishment_pk).playlist):
+            data['spotify_uri'] = t['spotify_uri']
+            data['name'] = t['name']
+            data['artist'] = t['artist']
+
+    return data
+
+
+def sort_playlist(establishment_pk, playlist):
+    current_song = get_most_recent_track2(establishment_pk)
+    current_track = Track.objects.get(spotify_uri=current_song['spotify_uri'], playlist=playlist)
+    next_tracks = Track.objects.order_by('-votes', 'order').filter(playlist=playlist, order__gt=current_track.order)
+    new_order = current_track.order + 1
+    for nt in next_tracks:
+        nt.order = new_order
+        nt.save()
+        new_order += 1
+
+
+@api_view(['PUT'])
+def upvote(request):
+    data = json.loads(request.body.decode('utf-8'))
+    playlist = Establishment.objects.get(pk=data['establishment']).playlist
+    voted_track = Track.objects.get(spotify_uri=data['spotify_uri'], playlist=playlist.id)
+    voted_track.votes += 1
+    voted_track.save()
+    sort_playlist(data['establishment'], playlist.id)
+    new_order = Track.objects.get(spotify_uri=data['spotify_uri'], playlist=playlist).order
+
+    username = Establishment.objects.get(pk=data['establishment']).spotify_username
+    scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+    token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+                                       client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
+
+    if token:
+        # reorder spotify playlist
+        sp = spotipy.Spotify(auth=token)
+        results = sp.user_playlist_reorder_tracks(user=username, playlist_id=playlist.spotify_url,
+                                                  range_start=voted_track.order, insert_before=new_order)
+    else:
+        return HttpResponse("Can't get token for", username)
+
+    return JsonResponse(results)
 
 # @receiver(post_save, sender=Playlist)
 # def save_tracks(sender, **kwargs):
