@@ -170,8 +170,11 @@ def submit_song_request(request):
         Track.objects.create(playlist_id=playlist.id, spotify_uri=request.data['spotify_uri'], order=no_songs,
                              votes=1)
         # sort playlist
-
-        return JsonResponse(resp)
+        sort_playlist(request.data['establishment'], playlist.id)
+        new_order = Track.objects.get(spotify_uri=request.data['spotify_uri'], playlist=playlist).order
+        results = sp.user_playlist_reorder_tracks(user=username, playlist_id=playlist.spotify_url, range_start=no_songs,
+                                                  insert_before=new_order, snapshot_id=resp['snapshot_id'])
+        return JsonResponse(results)
     else:
         return HttpResponse("Can't get token for", username)
 

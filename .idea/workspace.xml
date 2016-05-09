@@ -3,10 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="6e1514be-03b2-4ceb-98e2-88517b63be37" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/establishments/models.py" afterPath="$PROJECT_DIR$/establishments/models.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/establishments/serializers.py" afterPath="$PROJECT_DIR$/establishments/serializers.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/polls/credentials.py" afterPath="$PROJECT_DIR$/polls/credentials.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/polls/urls.py" afterPath="$PROJECT_DIR$/polls/urls.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/polls/views.py" afterPath="$PROJECT_DIR$/polls/views.py" />
     </list>
     <ignored path="joogpoint.iws" />
@@ -47,7 +43,7 @@
       <file leaf-file-name="urls.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/polls/urls.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="411">
+            <state relative-caret-position="646">
               <caret line="38" column="33" selection-start-line="38" selection-start-column="33" selection-end-line="38" selection-end-column="33" />
               <folding>
                 <element signature="e#0#53#0" expanded="true" />
@@ -81,8 +77,8 @@
       <file leaf-file-name="views.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/polls/views.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="629">
-              <caret line="209" column="24" selection-start-line="209" selection-start-column="24" selection-end-line="209" selection-end-column="24" />
+            <state relative-caret-position="282">
+              <caret line="173" column="73" selection-start-line="173" selection-start-column="73" selection-end-line="173" selection-end-column="73" />
               <folding>
                 <element signature="e#0#40#0" expanded="true" />
               </folding>
@@ -989,7 +985,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/polls/urls.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="411">
+        <state relative-caret-position="646">
           <caret line="38" column="33" selection-start-line="38" selection-start-column="33" selection-end-line="38" selection-end-column="33" />
           <folding>
             <element signature="e#0#53#0" expanded="true" />
@@ -999,8 +995,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/polls/views.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="629">
-          <caret line="209" column="24" selection-start-line="209" selection-start-column="24" selection-end-line="209" selection-end-column="24" />
+        <state relative-caret-position="282">
+          <caret line="173" column="73" selection-start-line="173" selection-start-column="73" selection-end-line="173" selection-end-column="73" />
           <folding>
             <element signature="e#0#40#0" expanded="true" />
           </folding>
