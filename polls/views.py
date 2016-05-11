@@ -54,6 +54,8 @@ class PlaylistViewSet(viewsets.ModelViewSet):
                     snapshot_id = sp.user_playlist_add_tracks(username, pl['id'], tracks_uris)
                     # Save new playlist url
                     establ_pl.spotify_url = pl['external_urls']['spotify']
+                    establ_pl.original_creator = data['owner']
+                    establ_pl.original_spotify_url = data['spotify_url']
                     establ_pl.save()
 
                 else:
@@ -168,7 +170,7 @@ def submit_song_request(request):
         # save track with 1 vote
         no_songs = Track.objects.filter(playlist=playlist.id).count()
         Track.objects.create(playlist_id=playlist.id, spotify_uri=request.data['spotify_uri'], order=no_songs,
-                             votes=1)
+                             votes=1, requested=True)
         # sort playlist
         sort_playlist(request.data['establishment'], playlist.id)
         new_order = Track.objects.get(spotify_uri=request.data['spotify_uri'], playlist=playlist).order
@@ -264,6 +266,45 @@ def upvote(request):
         return HttpResponse("Can't get token for", username)
 
     return JsonResponse(results)
+
+
+@api_view()
+def reset_playlist(request):
+    playlist = Establishment.objects.get(pk=request.GET.get('establishment')).playlist
+    username = playlist.establishment.spotify_username
+    scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+    token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+                                       client_secret=SPOTIFY_CLIENT_SECRET,
+                                       redirect_uri=SPOTIFY_REDIRECT_URI)
+
+    if token:
+        sp = spotipy.Spotify(auth=token)
+
+        # Empty the modified playlist
+        old_tracks_uris = Track.objects.filter(playlist_id=playlist.id).values_list('spotify_uri', flat=True)
+        sp.user_playlist_remove_all_occurrences_of_tracks(user=username, playlist_id=playlist.spotify_url,
+                                                          tracks=old_tracks_uris)
+        # Remove tracks from modified playlist
+        Track.objects.filter(playlist_id=playlist.id).delete()
+
+        # Get tracks from the original playlist
+        tracks = sp.user_playlist(playlist.original_creator, playlist.original_spotify_url,
+                                  fields="tracks.items(track(uri))")
+
+        # Get the tracks uris from the original playlist and create their track instances
+        tracks_uris = []
+        track_order = 0
+        for tr in tracks['tracks']['items']:
+            tracks_uris.append(tr['track']['uri'])
+            Track.objects.create(playlist_id=playlist.id, spotify_uri=tr['track']['uri'], order=track_order)
+            track_order += 1
+
+        # Add tracks to the playlist
+        resp = sp.user_playlist_add_tracks(username, playlist.spotify_url, tracks_uris)
+        return JsonResponse(resp)
+
+    else:
+        return HttpResponse("Can't get token for", username)
 
 # @receiver(post_save, sender=Playlist)
 # def save_tracks(sender, **kwargs):

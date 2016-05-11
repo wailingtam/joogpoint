@@ -8,7 +8,7 @@ class PlaylistSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Playlist
-        fields = ('url', 'establishment', 'spotify_url', 'tracks')
+        fields = ('url', 'establishment', 'spotify_url', 'tracks', 'original_creator', 'original_spotify_url')
 
 
 class TrackSerializer(serializers.HyperlinkedModelSerializer):
@@ -16,4 +16,4 @@ class TrackSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Track
-        fields = ('url', 'playlist', 'votes', 'order', 'spotify_uri')
+        fields = ('url', 'playlist', 'votes', 'order', 'spotify_uri', 'requested')
