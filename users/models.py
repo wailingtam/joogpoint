@@ -13,13 +13,18 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
         Token.objects.create(user=instance)
 
 
-# class UserProfile(models.Model):
-#     # This line is required. Links UserProfile to a User model instance.
-#     user = models.OneToOneField(User)
-#
-#     spotify_username = models.CharField(max_length=50, blank=True)
-#     # user = models.ForeignKey(User)
-#
-#     # representation of the object
-#     def __str__(self):
-#         return self.user.username
+class Profile(models.Model):
+    # This line is required. Links Profile to a User model instance.
+    user = models.OneToOneField(User,
+                                on_delete=models.CASCADE,
+                                related_name='user_profile')
+
+    spotify_username = models.CharField(max_length=50, blank=True)
+    facebook_username = models.CharField(max_length=50, blank=True)
+    twitter_username = models.CharField(max_length=15, blank=True)
+    fav_artists = models.TextField(blank=True, null=True)
+    fav_genres = models.TextField(blank=True, null=True)
+
+    # representation of the object
+    def __str__(self):
+        return self.user.username

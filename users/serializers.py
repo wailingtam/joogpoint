@@ -1,14 +1,19 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-# from .models import UserProfile
+from .models import Profile
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
-    establishments = serializers.HyperlinkedRelatedField(many=True, view_name='establishment-detail', read_only=True)
+    owner_of = serializers.HyperlinkedRelatedField(many=True, view_name='establishment-detail', read_only=True)
+    checked_in = serializers.HyperlinkedRelatedField(many=True, view_name='establishment-detail', read_only=True)
+    voted = serializers.HyperlinkedRelatedField(many=True, view_name='track-detail', read_only=True)
+    requested = serializers.HyperlinkedRelatedField(many=True, view_name='track-detail', read_only=True)
+    user_profile = serializers.HyperlinkedRelatedField(many=False, view_name='profile-detail', read_only=True)
 
     class Meta:
         model = User
-        fields = ('url', 'username', 'email', 'establishments', 'password')
+        fields = ('url', 'username', 'email', 'password', 'owner_of', 'checked_in', 'voted', 'requested',
+                  'user_profile')
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -21,19 +26,10 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         return user
 
 
-# class UserProfileSerializer(serializers.ModelSerializer):
-#
-#     user = UserSerializer()
-#
-#     class Meta:
-#         model = UserProfile
-#         fields = ('id', 'spotify_username', 'user')
-#
-#     def create(self, validated_data):
-#         user_profile = UserProfile(
-#             spotify_username=validated_data['spotify_username'],
-#         )
-#         user_profile.save()
-#         return user_profile
-    # pk = serializers.IntegerField(read_only=True)
-    # spotify_username = serializers.CharField(required=False, allow_blank=True, max_length=50)
+class ProfileSerializer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source='user.username')
+
+    class Meta:
+        model = Profile
+        fields = ('url', 'user', 'spotify_username', 'facebook_username', 'twitter_username', 'fav_artists',
+                  'fav_genres')

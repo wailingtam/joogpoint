@@ -62,7 +62,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
                     return HttpResponse("Can't get token for", username)
             return HttpResponse(playlist.spotify_url)
 
-    @detail_route(methods=['post'], url_path='song-request')
+    @detail_route(methods=['post'], url_path='request-song')
     def submit_song_request(self, request, pk):
         playlist = Playlist.objects.get(pk=pk)
         username = playlist.establishment.spotify_username
@@ -78,9 +78,9 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             # save track with 1 vote
             no_songs = Track.objects.filter(playlist=playlist.id).count()
             Track.objects.create(playlist_id=playlist.id, spotify_uri=request.data['spotify_uri'], order=no_songs,
-                                 votes=1, requested=True)
+                                 votes=1, request_user=request.user)
             # sort playlist
-            sort_playlist(playlist.id)
+            sort_playlist(playlist)
             new_order = Track.objects.get(spotify_uri=request.data['spotify_uri'], playlist=playlist).order
             results = sp.user_playlist_reorder_tracks(user=username, playlist_id=playlist.spotify_url,
                                                       range_start=no_songs,
@@ -152,7 +152,7 @@ class TrackViewSet(viewsets.ModelViewSet):
         playlist = voted_track.playlist
         voted_track.votes += 1
         voted_track.save()
-        sort_playlist(playlist.id)
+        sort_playlist(playlist)
         new_order = Track.objects.get(pk=pk).order
 
         username = playlist.establishment.spotify_username

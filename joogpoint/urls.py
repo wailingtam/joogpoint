@@ -26,6 +26,7 @@ from rest_framework.authtoken import views
 router = DefaultRouter()
 router.register(r'establishments', establishments.views.EstablishmentViewSet)
 router.register(r'users', users.views.UserViewSet)
+router.register(r'profiles', users.views.ProfileViewSet)
 router.register(r'playlists', polls.views.PlaylistViewSet)
 router.register(r'tracks', polls.views.TrackViewSet)
 

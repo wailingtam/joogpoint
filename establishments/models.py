@@ -5,7 +5,9 @@ from polls.models import Playlist
 
 
 class Establishment(models.Model):
-    owner = models.ForeignKey('auth.User', related_name='establishments')
+    owner = models.ForeignKey('auth.User',
+                              on_delete=models.CASCADE,
+                              related_name='owner_of')
     name = models.CharField(max_length=100)
     address = models.CharField(max_length=100)
     city = models.CharField(max_length=100)
@@ -15,6 +17,8 @@ class Establishment(models.Model):
     longitude = models.FloatField(blank=True)
     spotify_username = models.CharField(max_length=100)
     lastfm_username = models.CharField(max_length=100)
+    customers = models.ManyToManyField('auth.User',
+                                       related_name='checked_in')
 
     class Meta:
         ordering = ('country', 'city', 'name')
