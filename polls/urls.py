@@ -29,8 +29,7 @@ track_detail = TrackViewSet.as_view({
 
 
 urlpatterns = [
-    url(r'^$', views.spotify_test),
-    url(r'^account-access/$', views.get_account_access),
+    # url(r'^account-access/$', views.get_account_access),
     url(r'^spotify-playlists/$', views.get_spotify_playlists),
     url(r'^playlist-tracks/$', views.get_spotify_playlist_tracks),
     url(r'^song-search/$', views.song_search),
