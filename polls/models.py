@@ -8,6 +8,7 @@ class Playlist (models.Model):
     spotify_url = models.URLField(blank=True)
     original_creator = models.CharField(max_length=100, blank=True)
     original_spotify_url = models.URLField(max_length=100, blank=True)
+    explicit_lyrics = models.BooleanField(default=False)
 
 
 class Track (models.Model):

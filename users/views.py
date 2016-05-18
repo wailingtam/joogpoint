@@ -1,11 +1,13 @@
 from django.http import HttpResponse, Http404
 from django.contrib.auth.models import User
-from rest_framework import viewsets, generics, filters, permissions
+from rest_framework import viewsets, filters, permissions
 from .serializers import UserSerializer, ProfileSerializer
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponseRedirect
 from .models import Profile
 from users.permissions import IsOwnerOrReadOnly
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -14,6 +16,13 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            self.permission_classes = (permissions.AllowAny,)
+
+        return super(UserViewSet, self).get_permissions()
+
     filter_backends = (filters.DjangoFilterBackend,)
     filter_fields = ('username',)
 
