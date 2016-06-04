@@ -8,11 +8,11 @@ from django.http import JsonResponse, HttpResponse
 from rest_framework.decorators import detail_route, list_route
 from django.dispatch import receiver
 from django.db.models.signals import post_save
-from polls.credentials import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REDIRECT_URI, LASTFM_API_KEY
 import spotipy
 import spotipy.util as util
 from rest_framework.decorators import api_view
 from polls.permissions import IsOwnerOrReadOnly
+from joogpoint.settings import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REDIRECT_URI, LASTFM_API_KEY
 
 
 class PlaylistViewSet(viewsets.ModelViewSet):

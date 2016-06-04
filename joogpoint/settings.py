@@ -12,6 +12,15 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 
 import os
 
+
+# Access to environment variables
+SPOTIFY_CLIENT_ID = os.environ['SPOTIFY_CLIENT_ID']
+SPOTIFY_CLIENT_SECRET = os.environ['SPOTIFY_CLIENT_SECRET']
+SPOTIFY_REDIRECT_URI = os.environ['SPOTIFY_REDIRECT_URI']
+SPOTIFY_USERNAME = os.environ['SPOTIFY_USERNAME']
+LASTFM_API_KEY = os.environ['LASTFM_API_KEY']
+
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
