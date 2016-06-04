@@ -4,3 +4,4 @@ psycopg2==2.6.1
 wheel==0.26.0
 djangorestframework==3.3.2
 spotipy==2.3.8
+dj-database-url==0.4.1
