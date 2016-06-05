@@ -7,7 +7,11 @@
 #########################################
 __pycache__/
 
+# Static files #
+################
+*.pyc
+staticfiles
+
 # Others #
 ##########
 .cache-wailing_10
-
