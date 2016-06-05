@@ -6,3 +6,4 @@ djangorestframework==3.3.2
 spotipy==2.3.8
 dj-database-url==0.4.1
 django-filter==0.13.0
+whitenoise==3.2
