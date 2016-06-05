@@ -75,7 +75,8 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'joogpoint.middleware.organization_middleware.OrganizationMiddleware'
+    'joogpoint.middleware.organization_middleware.OrganizationMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'joogpoint.urls'
