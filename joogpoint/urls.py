@@ -39,6 +39,6 @@ urlpatterns = [
     url(r'^spotify/', include(polls.urls)),
     url(r'^accounts/', include(users.urls)),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^api-token-auth/', views.obtain_auth_token),
+    url(r'^login/', views.obtain_auth_token),
     # url(r'^static/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.STATIC_ROOT})
 ]

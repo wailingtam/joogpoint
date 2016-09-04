@@ -23,7 +23,7 @@ class EstablishmentViewSet(viewsets.ModelViewSet):
 
     @list_route()
     def search(self, request):
-        data = Establishment.objects.filter(name__icontains=request.GET.get('name', '')).values('id', 'name', 'address',
+        data = Establishment.objects.filter(name__icontains=request.GET.get('name', '')).values('url', 'name', 'address',
                                                                                                 'postcode', 'city')
         return JsonResponse(dict(results=list(data)))
 

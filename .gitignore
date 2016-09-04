@@ -15,3 +15,6 @@ staticfiles
 # Others #
 ##########
 .cache-wailing_10
+
+# IDE files
+.idea
