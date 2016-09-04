@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'polls.apps.PollsConfig',
     'rest_framework',
     'rest_framework.authtoken',
+    'pygeocoder',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

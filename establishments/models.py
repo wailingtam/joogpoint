@@ -21,13 +21,14 @@ class Establishment(models.Model):
                                        related_name='checked_in')
 
     class Meta:
-        ordering = ('country', 'city', 'name')
+        ordering = ('name', 'country', 'city')
 
     def __str__(self):
         return self.name
 
 
-# This code is triggered whenever a new establishment has been created and saved to the database
+# This code is triggered whenever a new establishment has been created and saved
+# to the database
 @receiver(post_save, sender=Establishment)
 def create_playlist(sender, instance=None, created=False, **kwargs):
     if created:
