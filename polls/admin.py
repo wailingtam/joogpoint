@@ -8,16 +8,18 @@ class PlaylistAdmin(admin.ModelAdmin):
 
 
 class TrackAdmin(admin.ModelAdmin):
-    list_display = ("title", "artist", "votes", "order", "request_user",
-                    "get_establishment", "get_establishment_address")
+    list_display = ("title", "artist", "votes", "order", "request_user", "get_establishment",
+                    "get_establishment_address", "in_playlist")
     search_fields = ['playlist__establishment__name', 'title', 'artist']
 
     def get_establishment(self, obj):
         return obj.playlist.establishment
+
     get_establishment.short_description = "Establishment"
 
     def get_establishment_address(self, obj):
         return obj.playlist.establishment.address
+
     get_establishment_address.short_description = "Address"
 
 

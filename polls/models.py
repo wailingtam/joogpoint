@@ -20,14 +20,6 @@ class Track (models.Model):
     spotify_uri = models.CharField(max_length=36)
     votes = models.IntegerField(default=0)
     order = models.IntegerField()
-    request_user = models.ForeignKey('auth.User',
-                                     related_name='requested',
-                                     blank=True,
-                                     null=True)
-    voters = models.ManyToManyField('auth.User',
-                                    related_name='voted',
-                                    blank=True)
-    #in_playlist = models.BooleanField(default=True)
-
-    class Meta:
-        unique_together = ('playlist', 'spotify_uri')
+    request_user = models.ForeignKey('auth.User', related_name='requested', blank=True, null=True)
+    voters = models.ManyToManyField('auth.User', related_name='voted', blank=True)
+    in_playlist = models.BooleanField(default=True)

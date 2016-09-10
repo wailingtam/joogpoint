@@ -10,8 +10,7 @@ import spotipy
 import spotipy.util as util
 from rest_framework.decorators import api_view
 from polls.permissions import IsOwnerOrReadOnly
-from joogpoint.settings import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, \
-    SPOTIFY_REDIRECT_URI, LASTFM_API_KEY
+from joogpoint.settings import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REDIRECT_URI, LASTFM_API_KEY
 
 
 class PlaylistViewSet(viewsets.ModelViewSet):
@@ -21,8 +20,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
     """
     queryset = Playlist.objects.all()
     serializer_class = PlaylistSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,
-                          IsOwnerOrReadOnly)
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly)
 
     @detail_route(methods=['put'], url_path='set-playlist')
     def copy_set_playlist(self, request, pk):
@@ -31,27 +29,23 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             playlist = Playlist.objects.get(pk=pk)
             if playlist.spotify_url != data['spotify_url']:
                 username = playlist.establishment.spotify_username
-                scope = 'playlist-read-private playlist-modify-public ' \
-                        'playlist-modify-private'
-                token = util.prompt_for_user_token(
-                    username, scope, client_id=SPOTIFY_CLIENT_ID,
-                    client_secret=SPOTIFY_CLIENT_SECRET,
-                    redirect_uri=SPOTIFY_REDIRECT_URI)
+                scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+                token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+                                                   client_secret=SPOTIFY_CLIENT_SECRET,
+                                                   redirect_uri=SPOTIFY_REDIRECT_URI)
                 if token:
                     sp = spotipy.Spotify(auth=token)
                     # Get tracks from the original playlist
-                    tracks = sp.user_playlist(
-                        data['owner'], data['spotify_url'],
-                        fields="name, tracks.items("
-                               "track(name,uri,artists(name)))")
-                    # Create a new playlist for the copy
-                    pl = sp.user_playlist_create(username, "jp-" +
-                                                 tracks['name'], public=False)
-                    # Remove tracks from previous playlist
-                    Track.objects.filter(playlist_id=pk).delete()
+                    tracks = sp.user_playlist(data['owner'], data['spotify_url'],
+                                              fields="name, tracks.items(track(name,uri,artists(name)))")
 
-                    # Get the tracks uris from the original playlist and create
-                    # their track instances
+                    # Create a new playlist for the copy
+                    pl = sp.user_playlist_create(username, "jp-" + tracks['name'], public=False)
+
+                    # Update previous playlist's tracks status to 'not in the current playlist'
+                    Track.objects.filter(playlist_id=pk, in_playlist=True).update(in_playlist=False)
+
+                    # Get the tracks uris from the original playlist and create their track instances
                     tracks_uris = []
                     track_order = 0
                     for tr in tracks['tracks']['items']:
@@ -60,15 +54,13 @@ class PlaylistViewSet(viewsets.ModelViewSet):
                         for artist in tr['track']['artists']:
                             artists += (artist['name'],)
                         artists = ", ".join(artists)
-                        Track.objects.create(playlist_id=pk,
-                                             title=tr['track']['name'],
-                                             artist=artists,
-                                             spotify_uri=tr['track']['uri'],
-                                             order=track_order)
+                        Track.objects.create(playlist_id=pk, title=tr['track']['name'], artist=artists,
+                                             spotify_uri=tr['track']['uri'], order=track_order)
                         track_order += 1
+
                     # Add tracks to the new playlist
-                    snapshot_id = sp.user_playlist_add_tracks(
-                        username, pl['id'], tracks_uris)
+                    snapshot_id = sp.user_playlist_add_tracks(username, pl['id'], tracks_uris)
+
                     # Save new playlist url
                     playlist.spotify_url = pl['external_urls']['spotify']
                     playlist.original_creator = data['owner']
@@ -82,44 +74,33 @@ class PlaylistViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'], url_path='request-song')
     def submit_song_request(self, request, pk):
         playlist = Playlist.objects.get(pk=pk)
-        if playlist.explicit_lyrics \
-                or request.data['explicit_lyrics'] == "False":
-            if not Track.objects.filter(
-                    playlist=playlist, spotify_uri=request.data['spotify_uri']):
+        if playlist.explicit_lyrics or request.data['explicit_lyrics'] == "False":
+            if not Track.objects.filter(playlist=playlist, spotify_uri=request.data['spotify_uri'], in_playlist=True):
                 username = playlist.establishment.spotify_username
-                scope = 'playlist-read-private playlist-modify-public ' \
-                        'playlist-modify-private'
-                token = util.prompt_for_user_token(
-                    username, scope, client_id=SPOTIFY_CLIENT_ID,
-                    client_secret=SPOTIFY_CLIENT_SECRET,
-                    redirect_uri=SPOTIFY_REDIRECT_URI)
-
+                scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+                token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+                                                   client_secret=SPOTIFY_CLIENT_SECRET,
+                                                   redirect_uri=SPOTIFY_REDIRECT_URI)
                 if token:
                     # add track to spotify playlist
                     sp = spotipy.Spotify(auth=token)
-                    resp = sp.user_playlist_add_tracks(
-                        user=username, playlist_id=playlist.spotify_url,
-                        tracks=[request.data['spotify_uri']])
+                    resp = sp.user_playlist_add_tracks(user=username, playlist_id=playlist.spotify_url,
+                                                       tracks=[request.data['spotify_uri']])
 
                     # save track with 1 vote
-                    no_songs = Track.objects.filter(
-                        playlist=playlist.id).count()
-                    tr = Track.objects.create(
-                        playlist_id=playlist.id, title=request.data['title'],
-                        artist=request.data['artist'],
-                        spotify_uri=request.data['spotify_uri'],
-                        order=no_songs, votes=1, request_user=request.user)
+                    no_songs = Track.objects.filter(playlist=playlist.id, in_playlist=True).count()
+                    tr = Track.objects.create(playlist_id=playlist.id, title=request.data['title'],
+                                              artist=request.data['artist'], spotify_uri=request.data['spotify_uri'],
+                                              order=no_songs, votes=1, request_user=request.user)
                     tr.voters.add(request.user)
 
                     # sort playlist
                     sort_playlist(playlist)
-                    new_order = Track.objects.get(
-                        spotify_uri=request.data['spotify_uri'],
-                        playlist=playlist).order
-                    results = sp.user_playlist_reorder_tracks(
-                        user=username, playlist_id=playlist.spotify_url,
-                        range_start=no_songs, insert_before=new_order,
-                        snapshot_id=resp['snapshot_id'])
+                    new_order = Track.objects.get(spotify_uri=request.data['spotify_uri'], playlist=playlist,
+                                                  in_playlist=True).order
+                    results = sp.user_playlist_reorder_tracks(user=username, playlist_id=playlist.spotify_url,
+                                                              range_start=no_songs, insert_before=new_order,
+                                                              snapshot_id=resp['snapshot_id'])
                     return JsonResponse(results)
                 else:
                     return HttpResponse("Can't get token for", username)
@@ -130,7 +111,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['put'], permission_classes=[IsOwnerOrReadOnly], url_path='reset-votes')
     def reset_votes(self, request, pk):
-        Track.objects.filter(playlist_id=pk).update(votes=0)
+        Track.objects.filter(playlist_id=pk, in_playlist=True).update(votes=0)
         return HttpResponse("Votes reset")
 
     @detail_route(methods=['put'], url_path='reset-playlist')
@@ -141,27 +122,37 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
                                            client_secret=SPOTIFY_CLIENT_SECRET,
                                            redirect_uri=SPOTIFY_REDIRECT_URI)
-
         if token:
             sp = spotipy.Spotify(auth=token)
 
             # Empty the modified playlist
-            old_tracks_uris = Track.objects.filter(playlist_id=playlist.id).values_list('spotify_uri', flat=True)
-            sp.user_playlist_remove_all_occurrences_of_tracks(user=username, playlist_id=playlist.spotify_url,
-                                                              tracks=old_tracks_uris)
-            # Remove tracks from modified playlist
-            Track.objects.filter(playlist_id=playlist.id).delete()
+            old_tracks_uris = Track.objects.filter(playlist_id=playlist.id, in_playlist=True)\
+                .values_list('spotify_uri', flat=True)
+
+            # Splitting it in lists of 100 because Spotify can't remove more than 100 tracks per request
+            old_tracks_uris_list = [old_tracks_uris[i:i + 100] for i in range(0, len(old_tracks_uris), 100)]
+            for track_uris in old_tracks_uris_list:
+                sp.user_playlist_remove_all_occurrences_of_tracks(user=username, playlist_id=playlist.spotify_url,
+                                                                  tracks=track_uris)
+
+            # Update old tracks status to 'not in the current playlist'
+            Track.objects.filter(playlist_id=pk, in_playlist=True).update(in_playlist=False)
 
             # Get tracks from the original playlist
             tracks = sp.user_playlist(playlist.original_creator, playlist.original_spotify_url,
-                                      fields="tracks.items(track(uri))")
+                                      fields="name, tracks.items(track(name,uri,artists(name)))")
 
             # Get the tracks uris from the original playlist and create their track instances
             tracks_uris = []
             track_order = 0
             for tr in tracks['tracks']['items']:
                 tracks_uris.append(tr['track']['uri'])
-                Track.objects.create(playlist_id=playlist.id, spotify_uri=tr['track']['uri'], order=track_order)
+                artists = ()
+                for artist in tr['track']['artists']:
+                    artists += (artist['name'],)
+                artists = ", ".join(artists)
+                Track.objects.create(playlist_id=playlist.id, title=tr['track']['name'], artist=artists,
+                                     spotify_uri=tr['track']['uri'], order=track_order)
                 track_order += 1
 
             # Add tracks to the playlist
@@ -172,16 +163,16 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             return HttpResponse("Can't get token for", username)
 
     @detail_route(methods=['get'], url_path='current-song')
-    def get_most_recent_track(self, request, pk):
-        return JsonResponse(get_most_recent_track2(pk))
+    def get_current_song(self, request, pk):
+        return JsonResponse(get_most_recent_track(pk))
 
     @detail_route(methods=['get'], url_path='playlist-on')
     def playlist_is_on(self, request, pk):
         playlist = Playlist.objects.get(pk=pk)
         username = playlist.establishment.lastfm_username
         results = urllib.request.urlopen("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=" +
-                                         username + "&api_key=" + LASTFM_API_KEY + "&format=json&limit=1"
-                                         ).read().decode("utf-8")
+                                         username + "&api_key=" + LASTFM_API_KEY +
+                                         "&format=json&limit=1").read().decode("utf-8")
         dic = json.loads(results)
 
         return HttpResponse(len(dic['recenttracks']['track']) > 1)
@@ -235,7 +226,8 @@ class TrackViewSet(viewsets.ModelViewSet):
 
 @api_view()
 def get_spotify_playlists(request):
-    username = Establishment.objects.get(pk=request.GET.get('establishment')).spotify_username
+    username = Establishment.objects.get(pk=request.GET.get('establishment'))\
+        .spotify_username
     scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
     token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
                                        client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
@@ -265,8 +257,9 @@ def get_spotify_playlist_tracks(request):
                                        client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
     if token:
         sp = spotipy.Spotify(auth=token)
-        tracks = sp.user_playlist(request.GET.get('owner'), request.GET.get('spotify_url'),
-                                  fields="name, images, tracks.items(track(name, artists, album(images)))")
+        tracks = sp.user_playlist(
+            request.GET.get('owner'), request.GET.get('spotify_url'),
+            fields="name, images, tracks.items(track(name, artists, album(images)))")
     else:
         return HttpResponse("Can't get token for", username)
 
@@ -276,7 +269,7 @@ def get_spotify_playlist_tracks(request):
 @api_view()
 def song_search(request):
     # Encode spaces with the hex code %20 or +,
-    # genre  Use double quotation marks (%22) around the genre keyword string if it contains spaces.
+    # genre:  Use double quotation marks (%22) around the genre keyword string if it contains spaces.
     # Limit Default: 10. Minimum: 1. Maximum: 50
     sp = spotipy.Spotify()
     query = request.GET.get('value')
@@ -299,13 +292,11 @@ def song_search(request):
     return JsonResponse(data)
 
 
-def get_most_recent_track2(playlist_pk):
+def get_most_recent_track(playlist_pk):
     playlist = Playlist.objects.get(pk=playlist_pk)
     username = playlist.establishment.lastfm_username
-    results = urllib.request.urlopen(
-        "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=" +
-        username + "&api_key=" + LASTFM_API_KEY + "&format=json&limit=1"
-    ).read().decode("utf-8")
+    results = urllib.request.urlopen("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=" + username +
+                                     "&api_key=" + LASTFM_API_KEY + "&format=json&limit=1").read().decode("utf-8")
     dic = json.loads(results)
     data = {
         'now_playing': True,
@@ -315,8 +306,7 @@ def get_most_recent_track2(playlist_pk):
         # if there are the currently playing song and the last played song (>1)
         # and it's the currently playing song
         # or there is only the last played song (==1)
-        if len(dic['recenttracks']['track']) > 1 and '@attr' in t \
-                or len(dic['recenttracks']['track']) == 1:
+        if len(dic['recenttracks']['track']) > 1 and '@attr' in t or len(dic['recenttracks']['track']) == 1:
             data['name'] = t['name']
             data['artist'] = t['artist']['#text']
             if '@attr' not in t:
@@ -327,7 +317,7 @@ def get_most_recent_track2(playlist_pk):
     query = str(data['artist']) + " " + str(data['name'])
     results = sp.search(q=query, type='track')
     for result in results['tracks']['items']:
-        track_in_playlist = Track.objects.filter(spotify_uri=result['uri'], playlist=playlist)
+        track_in_playlist = Track.objects.filter(spotify_uri=result['uri'], playlist=playlist, in_playlist=True)
         if track_in_playlist:
             data['spotify_uri'] = track_in_playlist[0].spotify_uri
             data['name'] = track_in_playlist[0].title
@@ -337,22 +327,21 @@ def get_most_recent_track2(playlist_pk):
     # If couldn't find song with a title + artist search at spotify
     if not data['spotify_uri']:
         found_track = Track.objects.none()
-        track_by_title_artist = Track.objects.filter(
-            title__icontains=data['name'], artist__icontains=data['artist'],
-            playlist__establishment_id=playlist.establishment_id)
-        # add in_playlist = True as filter in the 3 cases
+        track_by_title_artist = Track.objects.filter(title__icontains=data['name'], artist__icontains=data['artist'],
+                                                     playlist__establishment_id=playlist.establishment_id,
+                                                     in_playlist=True)
         if track_by_title_artist.count() == 1:
             found_track = track_by_title_artist
         else:
-            track_by_title = Track.objects.filter(
-                title__icontains=data['name'],
-                playlist__establishment_id=playlist.establishment_id)
+            track_by_title = Track.objects.filter(title__icontains=data['name'],
+                                                  playlist__establishment_id=playlist.establishment_id,
+                                                  in_playlist=True)
             if track_by_title.count() == 1:
                 found_track = track_by_title
             else:
-                track_by_artist = Track.objects.filter(
-                    artist__icontains=data['artist'],
-                    playlist__establishment_id=playlist.establishment_id)
+                track_by_artist = Track.objects.filter(artist__icontains=data['artist'],
+                                                       playlist__establishment_id=playlist.establishment_id,
+                                                       in_playlist=True)
                 if track_by_artist.count() == 1:
                     found_track = track_by_artist
 
@@ -367,9 +356,10 @@ def get_most_recent_track2(playlist_pk):
 
 
 def sort_playlist(playlist):
-    current_song = get_most_recent_track2(playlist.id)
-    current_track = Track.objects.get(spotify_uri=current_song['spotify_uri'], playlist=playlist)
-    next_tracks = Track.objects.order_by('-votes', 'order').filter(playlist=playlist, order__gt=current_track.order)
+    current_song = get_most_recent_track(playlist.id)
+    current_track = Track.objects.get(spotify_uri=current_song['spotify_uri'], playlist=playlist, in_playlist=True)
+    next_tracks = Track.objects.order_by('-votes', 'order').filter(playlist=playlist, in_playlist=True,
+                                                                   order__gt=current_track.order)
     new_order = current_track.order + 1
     for nt in next_tracks:
         nt.order = new_order
