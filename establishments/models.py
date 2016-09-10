@@ -18,7 +18,8 @@ class Establishment(models.Model):
     spotify_username = models.CharField(max_length=100)
     lastfm_username = models.CharField(max_length=100)
     customers = models.ManyToManyField('auth.User',
-                                       related_name='checked_in')
+                                       related_name='checked_in',
+                                       blank=True)
 
     class Meta:
         ordering = ('name', 'country', 'city')

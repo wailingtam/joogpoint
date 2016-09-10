@@ -15,6 +15,8 @@ class Track (models.Model):
     playlist = models.ForeignKey('Playlist',
                                  on_delete=models.CASCADE,
                                  related_name='playlist_of')
+    title = models.CharField(max_length=100)
+    artist = models.CharField(max_length=100)
     spotify_uri = models.CharField(max_length=36)
     votes = models.IntegerField(default=0)
     order = models.IntegerField()
@@ -23,7 +25,9 @@ class Track (models.Model):
                                      blank=True,
                                      null=True)
     voters = models.ManyToManyField('auth.User',
-                                    related_name='voted')
+                                    related_name='voted',
+                                    blank=True)
+    #in_playlist = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ('playlist', 'spotify_uri')

@@ -2,10 +2,16 @@ from rest_framework import serializers
 from .models import Playlist, Track
 
 
+class BasicTrackInfoSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Track
+        fields = ('id', 'title', 'artist', 'votes', 'order')
+
+
 class PlaylistSerializer(serializers.HyperlinkedModelSerializer):
     establishment = serializers.ReadOnlyField(source='establishment.name')
-    playlist_of = serializers.HyperlinkedRelatedField(
-        many=True, view_name='track-detail', read_only=True)
+    playlist_of = BasicTrackInfoSerializer(many=True, read_only=True)
 
     class Meta:
         model = Playlist
@@ -21,5 +27,5 @@ class TrackSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Track
-        fields = ('url', 'playlist', 'spotify_uri', 'votes',
+        fields = ('url', 'title', 'artist', 'playlist', 'spotify_uri', 'votes',
                   'order', 'request_user', 'voters')
