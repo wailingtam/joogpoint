@@ -4,7 +4,7 @@ from django.db import models
 class Playlist (models.Model):
     establishment = models.OneToOneField('establishments.Establishment',
                                          on_delete=models.CASCADE,
-                                         related_name='establishment_plays')
+                                         related_name='establishment_playlist')
     spotify_url = models.URLField(blank=True)
     original_creator = models.CharField(max_length=100, blank=True)
     original_spotify_url = models.URLField(max_length=100, blank=True)

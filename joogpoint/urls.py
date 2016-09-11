@@ -17,7 +17,6 @@ from django.contrib import admin
 from django.conf.urls import url, include
 import users.views, establishments.views, polls.views
 import polls.urls
-import users.urls
 import establishments.urls
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken import views
@@ -25,9 +24,9 @@ from joogpoint import settings
 
 # Create a router and register our viewsets with it.
 router = DefaultRouter()
-router.register(r'establishments', establishments.views.EstablishmentViewSet)
 router.register(r'users', users.views.UserViewSet)
 router.register(r'profiles', users.views.ProfileViewSet)
+router.register(r'establishments', establishments.views.EstablishmentViewSet)
 router.register(r'playlists', polls.views.PlaylistViewSet)
 router.register(r'tracks', polls.views.TrackViewSet)
 
@@ -37,8 +36,8 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^', include(router.urls)),
     url(r'^spotify/', include(polls.urls)),
-    url(r'^accounts/', include(users.urls)),
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^login/', views.obtain_auth_token),
+    # pattern to include the login and logout views for the browsable API
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     # url(r'^static/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.STATIC_ROOT})
 ]

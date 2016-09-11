@@ -3,8 +3,8 @@ from establishments.serializers import EstablishmentSerializer
 from rest_framework import permissions, viewsets
 from establishments.permissions import IsOwnerOrReadOnly
 from rest_framework.decorators import detail_route, list_route
-from rest_framework.response import Response
 from django.http import JsonResponse, HttpResponse
+from django.db.models import Q
 
 
 class EstablishmentViewSet(viewsets.ModelViewSet):
@@ -14,8 +14,7 @@ class EstablishmentViewSet(viewsets.ModelViewSet):
     """
     queryset = Establishment.objects.all()
     serializer_class = EstablishmentSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,
-                          IsOwnerOrReadOnly,)
+    permission_classes = (permissions.IsAuthenticated, IsOwnerOrReadOnly,)
 
     # Associating establishments with users
     def perform_create(self, serializer):
@@ -23,8 +22,9 @@ class EstablishmentViewSet(viewsets.ModelViewSet):
 
     @list_route()
     def search(self, request):
-        data = Establishment.objects.filter(name__icontains=request.GET.get('name', '')).values('url', 'name', 'address',
-                                                                                                'postcode', 'city')
+        query = request.GET.get('query', '')
+        data = Establishment.objects.filter(Q(name__icontains=query) | Q(address__icontains=query) |
+                                            Q(city__icontains=query) | Q(country__icontains=query)).values()
         return JsonResponse(dict(results=list(data)))
 
     @detail_route(methods=['post'], url_path='check-in')

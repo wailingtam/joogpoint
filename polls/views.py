@@ -5,10 +5,10 @@ from establishments.models import Establishment
 import urllib
 import json
 from django.http import JsonResponse, HttpResponse
-from rest_framework.decorators import detail_route, list_route
+from rest_framework.decorators import detail_route
 import spotipy
 import spotipy.util as util
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from polls.permissions import IsOwnerOrReadOnly
 from joogpoint.settings import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REDIRECT_URI, LASTFM_API_KEY
 
@@ -20,103 +20,68 @@ class PlaylistViewSet(viewsets.ModelViewSet):
     """
     queryset = Playlist.objects.all()
     serializer_class = PlaylistSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly)
+    permission_classes = (permissions.IsAuthenticated, IsOwnerOrReadOnly)
+
+    def get_permissions(self):
+        if self.request.method == 'DELETE':
+            self.permission_classes = (permissions.IsAdminUser,)
+        return super(PlaylistViewSet, self).get_permissions()
 
     @detail_route(methods=['put'], url_path='set-playlist')
-    def copy_set_playlist(self, request, pk):
-        if request.method == 'PUT':
-            data = json.loads(request.body.decode('utf-8'))
-            playlist = Playlist.objects.get(pk=pk)
-            if playlist.spotify_url != data['spotify_url']:
-                username = playlist.establishment.spotify_username
-                scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
-                token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
-                                                   client_secret=SPOTIFY_CLIENT_SECRET,
-                                                   redirect_uri=SPOTIFY_REDIRECT_URI)
-                if token:
-                    sp = spotipy.Spotify(auth=token)
-                    # Get tracks from the original playlist
-                    tracks = sp.user_playlist(data['owner'], data['spotify_url'],
-                                              fields="name, tracks.items(track(name,uri,artists(name)))")
-
-                    # Create a new playlist for the copy
-                    pl = sp.user_playlist_create(username, "jp-" + tracks['name'], public=False)
-
-                    # Update previous playlist's tracks status to 'not in the current playlist'
-                    Track.objects.filter(playlist_id=pk, in_playlist=True).update(in_playlist=False)
-
-                    # Get the tracks uris from the original playlist and create their track instances
-                    tracks_uris = []
-                    track_order = 0
-                    for tr in tracks['tracks']['items']:
-                        tracks_uris.append(tr['track']['uri'])
-                        artists = ()
-                        for artist in tr['track']['artists']:
-                            artists += (artist['name'],)
-                        artists = ", ".join(artists)
-                        Track.objects.create(playlist_id=pk, title=tr['track']['name'], artist=artists,
-                                             spotify_uri=tr['track']['uri'], order=track_order)
-                        track_order += 1
-
-                    # Add tracks to the new playlist
-                    snapshot_id = sp.user_playlist_add_tracks(username, pl['id'], tracks_uris)
-
-                    # Save new playlist url
-                    playlist.spotify_url = pl['external_urls']['spotify']
-                    playlist.original_creator = data['owner']
-                    playlist.original_spotify_url = data['spotify_url']
-                    playlist.save()
-
-                else:
-                    return HttpResponse("Can't get token for", username)
-            return HttpResponse(playlist.spotify_url)
-
-    @detail_route(methods=['post'], url_path='request-song')
-    def submit_song_request(self, request, pk):
+    def set_playlist(self, request, pk):
+        data = json.loads(request.body.decode('utf-8'))
         playlist = Playlist.objects.get(pk=pk)
-        if playlist.explicit_lyrics or request.data['explicit_lyrics'] == "False":
-            if not Track.objects.filter(playlist=playlist, spotify_uri=request.data['spotify_uri'], in_playlist=True):
-                username = playlist.establishment.spotify_username
-                scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
-                token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
-                                                   client_secret=SPOTIFY_CLIENT_SECRET,
-                                                   redirect_uri=SPOTIFY_REDIRECT_URI)
-                if token:
-                    # add track to spotify playlist
-                    sp = spotipy.Spotify(auth=token)
-                    resp = sp.user_playlist_add_tracks(user=username, playlist_id=playlist.spotify_url,
-                                                       tracks=[request.data['spotify_uri']])
+        self.check_object_permissions(request, playlist)
+        if playlist.spotify_url != data['spotify_url'] and playlist.original_spotify_url != data['spotify_url']:
+            username = playlist.establishment.spotify_username
+            scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+            token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+                                               client_secret=SPOTIFY_CLIENT_SECRET,
+                                               redirect_uri=SPOTIFY_REDIRECT_URI)
+            if token:
+                sp = spotipy.Spotify(auth=token)
+                # Get tracks from the original playlist
+                tracks = sp.user_playlist(data['owner'], data['spotify_url'],
+                                          fields="name, tracks.items(track(name,uri,artists(name)))")
 
-                    # save track with 1 vote
-                    no_songs = Track.objects.filter(playlist=playlist.id, in_playlist=True).count()
-                    tr = Track.objects.create(playlist_id=playlist.id, title=request.data['title'],
-                                              artist=request.data['artist'], spotify_uri=request.data['spotify_uri'],
-                                              order=no_songs, votes=1, request_user=request.user)
-                    tr.voters.add(request.user)
+                # Create a new playlist for the copy
+                pl = sp.user_playlist_create(username, "jp-" + tracks['name'], public=False)
 
-                    # sort playlist
-                    sort_playlist(playlist)
-                    new_order = Track.objects.get(spotify_uri=request.data['spotify_uri'], playlist=playlist,
-                                                  in_playlist=True).order
-                    results = sp.user_playlist_reorder_tracks(user=username, playlist_id=playlist.spotify_url,
-                                                              range_start=no_songs, insert_before=new_order,
-                                                              snapshot_id=resp['snapshot_id'])
-                    return JsonResponse(results)
-                else:
-                    return HttpResponse("Can't get token for", username)
+                # Update previous playlist's tracks status to 'not in the current playlist'
+                Track.objects.filter(playlist_id=pk, in_playlist=True).update(in_playlist=False)
+
+                # Get the tracks uris from the original playlist and create their track instances
+                tracks_uris = []
+                track_order = 0
+                for tr in tracks['tracks']['items']:
+                    tracks_uris.append(tr['track']['uri'])
+                    artists = ()
+                    for artist in tr['track']['artists']:
+                        artists += (artist['name'],)
+                    artists = ", ".join(artists)
+                    Track.objects.create(playlist_id=pk, title=tr['track']['name'], artist=artists,
+                                         spotify_uri=tr['track']['uri'], order=track_order)
+                    track_order += 1
+
+                # Add tracks to the new playlist
+                snapshot_id = sp.user_playlist_add_tracks(username, pl['id'], tracks_uris)
+
+                # Save new playlist url
+                playlist.spotify_url = pl['external_urls']['spotify']
+                playlist.original_creator = data['owner']
+                playlist.original_spotify_url = data['spotify_url']
+                playlist.save()
+                return HttpResponse(playlist.spotify_url)
+
             else:
-                return HttpResponse("The song is already in the playlist.")
+                return HttpResponse("Can't get token for", username)
         else:
-            return HttpResponse("Explicit lyrics are not allowed.")
-
-    @detail_route(methods=['put'], permission_classes=[IsOwnerOrReadOnly], url_path='reset-votes')
-    def reset_votes(self, request, pk):
-        Track.objects.filter(playlist_id=pk, in_playlist=True).update(votes=0)
-        return HttpResponse("Votes reset")
+            return HttpResponse("The same playlist is already set.")
 
     @detail_route(methods=['put'], url_path='reset-playlist')
     def reset_playlist(self, request, pk):
         playlist = Playlist.objects.get(pk=pk)
+        self.check_object_permissions(request, playlist)
         username = playlist.establishment.spotify_username
         scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
         token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
@@ -162,20 +127,65 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         else:
             return HttpResponse("Can't get token for", username)
 
+    @detail_route(methods=['put'], url_path='reset-votes')
+    def reset_votes(self, request, pk):
+        playlist = Playlist.objects.get(pk=pk)
+        self.check_object_permissions(request, playlist)
+        Track.objects.filter(playlist_id=pk, in_playlist=True).update(votes=0)
+        return HttpResponse("Votes reset")
+
+    @detail_route(methods=['post'], url_path='request-song')
+    def submit_song_request(self, request, pk):
+        playlist = Playlist.objects.get(pk=pk)
+        if playlist.explicit_lyrics or not request.data['explicit_lyrics']:
+            if not Track.objects.filter(playlist=playlist, spotify_uri=request.data['spotify_uri'], in_playlist=True):
+                username = playlist.establishment.spotify_username
+                scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+                token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+                                                   client_secret=SPOTIFY_CLIENT_SECRET,
+                                                   redirect_uri=SPOTIFY_REDIRECT_URI)
+                if token:
+                    # add track to spotify playlist
+                    sp = spotipy.Spotify(auth=token)
+                    resp = sp.user_playlist_add_tracks(user=username, playlist_id=playlist.spotify_url,
+                                                       tracks=[request.data['spotify_uri']])
+
+                    # save track with 1 vote
+                    no_songs = Track.objects.filter(playlist=playlist.id, in_playlist=True).count()
+                    tr = Track.objects.create(playlist_id=playlist.id, title=request.data['title'],
+                                              artist=request.data['artist'], spotify_uri=request.data['spotify_uri'],
+                                              order=no_songs, votes=1, request_user=request.user)
+                    tr.voters.add(request.user)
+
+                    # sort playlist
+                    sort_playlist(playlist)
+                    new_order = Track.objects.get(spotify_uri=request.data['spotify_uri'], playlist=playlist,
+                                                  in_playlist=True).order
+                    results = sp.user_playlist_reorder_tracks(user=username, playlist_id=playlist.spotify_url,
+                                                              range_start=no_songs, insert_before=new_order,
+                                                              snapshot_id=resp['snapshot_id'])
+                    return JsonResponse(results)
+                else:
+                    return HttpResponse("Can't get token for", username)
+            else:
+                return HttpResponse("The song is already in the playlist.")
+        else:
+            return HttpResponse("Explicit lyrics are not allowed.")
+
     @detail_route(methods=['get'], url_path='current-song')
     def get_current_song(self, request, pk):
         return JsonResponse(get_most_recent_track(pk))
 
-    @detail_route(methods=['get'], url_path='playlist-on')
-    def playlist_is_on(self, request, pk):
-        playlist = Playlist.objects.get(pk=pk)
-        username = playlist.establishment.lastfm_username
-        results = urllib.request.urlopen("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=" +
-                                         username + "&api_key=" + LASTFM_API_KEY +
-                                         "&format=json&limit=1").read().decode("utf-8")
-        dic = json.loads(results)
-
-        return HttpResponse(len(dic['recenttracks']['track']) > 1)
+    # @detail_route(methods=['get'], url_path='playlist-on')
+    # def playlist_is_on(self, request, pk):
+    #     playlist = Playlist.objects.get(pk=pk)
+    #     username = playlist.establishment.lastfm_username
+    #     results = urllib.request.urlopen("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=" +
+    #                                      username + "&api_key=" + LASTFM_API_KEY +
+    #                                      "&format=json&limit=1").read().decode("utf-8")
+    #     dic = json.loads(results)
+    #
+    #     return HttpResponse(len(dic['recenttracks']['track']) > 1)
 
 
 class TrackViewSet(viewsets.ModelViewSet):
@@ -185,9 +195,14 @@ class TrackViewSet(viewsets.ModelViewSet):
     """
     queryset = Track.objects.all()
     serializer_class = TrackSerializer
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    permission_classes = (permissions.IsAuthenticated,)
 
-    @detail_route(methods=['put'], url_path='vote')
+    def get_permissions(self):
+        if self.request.method != 'POST':
+            self.permission_classes = (permissions.IsAdminUser,)
+        return super(TrackViewSet, self).get_permissions()
+
+    @detail_route(methods=['post'], url_path='vote')
     def vote(self, request, pk):
         voted_track = Track.objects.get(pk=pk)
         if not voted_track.voters.filter(pk=request.user.id).exists():
@@ -224,56 +239,56 @@ class TrackViewSet(viewsets.ModelViewSet):
 #     return HttpResponse(token)
 
 
+# define permissions
+# @api_view()
+# def get_spotify_playlists(request):
+#     username = Establishment.objects.get(pk=request.GET.get('establishment')).spotify_username
+#     scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+#     token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+#                                        client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
+#     if token:
+#         data = {"results": []}
+#         sp = spotipy.Spotify(auth=token)
+#         playlists = sp.user_playlists(username)
+#         for playlist in playlists['items']:
+#             pl = {
+#                 'spotify_url': playlist['external_urls']['spotify'],
+#                 'name': playlist['name'],
+#                 'owner': playlist['owner']['id'],
+#                 'image': playlist['images']
+#             }
+#             data['results'].append(pl)
+#     else:
+#         return HttpResponse("Can't get token for", username)
+#
+#     return JsonResponse(data)
+#
+# define permissions
+# @api_view()
+# def get_spotify_playlist_tracks(request):
+#     username = Establishment.objects.get(pk=request.GET.get('establishment_id')).spotify_username
+#     scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
+#     token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
+#                                        client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
+#     if token:
+#         sp = spotipy.Spotify(auth=token)
+#         tracks = sp.user_playlist(
+#             request.GET.get('owner'), request.GET.get('spotify_url'),
+#             fields="name, images, tracks.items(track(name, artists, album(images)))")
+#     else:
+#         return HttpResponse("Can't get token for", username)
+#
+#     return JsonResponse(tracks)
+
 @api_view()
-def get_spotify_playlists(request):
-    username = Establishment.objects.get(pk=request.GET.get('establishment'))\
-        .spotify_username
-    scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
-    token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
-                                       client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
-    if token:
-        data = {"results": []}
-        sp = spotipy.Spotify(auth=token)
-        playlists = sp.user_playlists(username)
-        for playlist in playlists['items']:
-            pl = {
-                'spotify_url': playlist['external_urls']['spotify'],
-                'name': playlist['name'],
-                'owner': playlist['owner']['id'],
-                'image': playlist['images']
-            }
-            data['results'].append(pl)
-    else:
-        return HttpResponse("Can't get token for", username)
-
-    return JsonResponse(data)
-
-
-@api_view()
-def get_spotify_playlist_tracks(request):
-    username = Establishment.objects.get(pk=request.GET.get('establishment')).spotify_username
-    scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
-    token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
-                                       client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
-    if token:
-        sp = spotipy.Spotify(auth=token)
-        tracks = sp.user_playlist(
-            request.GET.get('owner'), request.GET.get('spotify_url'),
-            fields="name, images, tracks.items(track(name, artists, album(images)))")
-    else:
-        return HttpResponse("Can't get token for", username)
-
-    return JsonResponse(tracks)
-
-
-@api_view()
+@permission_classes((permissions.IsAuthenticated,))
 def song_search(request):
     # Encode spaces with the hex code %20 or +,
     # genre:  Use double quotation marks (%22) around the genre keyword string if it contains spaces.
     # Limit Default: 10. Minimum: 1. Maximum: 50
     sp = spotipy.Spotify()
-    query = request.GET.get('value')
-    results = sp.search(q=query, type='track')
+    query = request.GET.get('query')
+    results = sp.search(q=query, type='track', limit=50)
     data = {
         'tracks': [],
         'next': results['tracks']['next']
