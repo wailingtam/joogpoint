@@ -36,8 +36,8 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             username = playlist.establishment.spotify_username
             scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
             token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
-                                               client_secret=SPOTIFY_CLIENT_SECRET,
-                                               redirect_uri=SPOTIFY_REDIRECT_URI)
+                                               client_secret=SPOTIFY_CLIENT_SECRET)
+                                               # redirect_uri=SPOTIFY_REDIRECT_URI)
             if token:
                 sp = spotipy.Spotify(auth=token)
                 # Get tracks from the original playlist
@@ -85,8 +85,8 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         username = playlist.establishment.spotify_username
         scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
         token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
-                                           client_secret=SPOTIFY_CLIENT_SECRET,
-                                           redirect_uri=SPOTIFY_REDIRECT_URI)
+                                           client_secret=SPOTIFY_CLIENT_SECRET)
+                                           # redirect_uri=SPOTIFY_REDIRECT_URI)
         if token:
             sp = spotipy.Spotify(auth=token)
 
@@ -142,8 +142,8 @@ class PlaylistViewSet(viewsets.ModelViewSet):
                 username = playlist.establishment.spotify_username
                 scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
                 token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
-                                                   client_secret=SPOTIFY_CLIENT_SECRET,
-                                                   redirect_uri=SPOTIFY_REDIRECT_URI)
+                                                   client_secret=SPOTIFY_CLIENT_SECRET)
+                                                   # redirect_uri=SPOTIFY_REDIRECT_URI)
                 if token:
                     # add track to spotify playlist
                     sp = spotipy.Spotify(auth=token)
@@ -216,7 +216,7 @@ class TrackViewSet(viewsets.ModelViewSet):
             username = playlist.establishment.spotify_username
             scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
             token = util.prompt_for_user_token(username, scope, client_id=SPOTIFY_CLIENT_ID,
-                                               client_secret=SPOTIFY_CLIENT_SECRET, redirect_uri=SPOTIFY_REDIRECT_URI)
+                                               client_secret=SPOTIFY_CLIENT_SECRET)#, redirect_uri=SPOTIFY_REDIRECT_URI)
 
             if token:
                 # reorder spotify playlist
