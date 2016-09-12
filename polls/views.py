@@ -22,12 +22,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
     serializer_class = PlaylistSerializer
     permission_classes = (permissions.IsAuthenticated, IsOwnerOrReadOnly)
 
-    def get_permissions(self):
-        if self.request.method == 'DELETE':
-            self.permission_classes = (permissions.IsAdminUser,)
-        return super(PlaylistViewSet, self).get_permissions()
-
-    @detail_route(methods=['put'], url_path='set-playlist')
+    @detail_route(methods=['post'], url_path='set-playlist')
     def set_playlist(self, request, pk):
         data = json.loads(request.body.decode('utf-8'))
         playlist = Playlist.objects.get(pk=pk)
@@ -41,8 +36,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
                 sp = spotipy.Spotify(auth=token)
                 # Get tracks from the original playlist
                 tracks = sp.user_playlist(data['owner'], data['spotify_url'],
-                                          fields="name, tracks.items(track(name,uri,artists(name)))")
-
+                                          fields="name, tracks.items(is_local, track(name,uri,artists(name)))")
                 # Create a new playlist for the copy
                 pl = sp.user_playlist_create(username, "jp-" + tracks['name'], public=False)
 
@@ -53,14 +47,15 @@ class PlaylistViewSet(viewsets.ModelViewSet):
                 tracks_uris = []
                 track_order = 0
                 for tr in tracks['tracks']['items']:
-                    tracks_uris.append(tr['track']['uri'])
-                    artists = ()
-                    for artist in tr['track']['artists']:
-                        artists += (artist['name'],)
-                    artists = ", ".join(artists)
-                    Track.objects.create(playlist_id=pk, title=tr['track']['name'], artist=artists,
-                                         spotify_uri=tr['track']['uri'], order=track_order)
-                    track_order += 1
+                    if not tr['is_local']:
+                        tracks_uris.append(tr['track']['uri'])
+                        artists = ()
+                        for artist in tr['track']['artists']:
+                            artists += (artist['name'],)
+                        artists = ", ".join(artists)
+                        Track.objects.create(playlist_id=pk, title=tr['track']['name'], artist=artists,
+                                             spotify_uri=tr['track']['uri'], order=track_order)
+                        track_order += 1
 
                 # Add tracks to the new playlist
                 snapshot_id = sp.user_playlist_add_tracks(username, pl['id'], tracks_uris)
@@ -103,20 +98,21 @@ class PlaylistViewSet(viewsets.ModelViewSet):
 
             # Get tracks from the original playlist
             tracks = sp.user_playlist(playlist.original_creator, playlist.original_spotify_url,
-                                      fields="name, tracks.items(track(name,uri,artists(name)))")
+                                      fields="name, tracks.items(is_local, track(name,uri,artists(name)))")
 
             # Get the tracks uris from the original playlist and create their track instances
             tracks_uris = []
             track_order = 0
             for tr in tracks['tracks']['items']:
-                tracks_uris.append(tr['track']['uri'])
-                artists = ()
-                for artist in tr['track']['artists']:
-                    artists += (artist['name'],)
-                artists = ", ".join(artists)
-                Track.objects.create(playlist_id=playlist.id, title=tr['track']['name'], artist=artists,
-                                     spotify_uri=tr['track']['uri'], order=track_order)
-                track_order += 1
+                if not tr['is_local']:
+                    tracks_uris.append(tr['track']['uri'])
+                    artists = ()
+                    for artist in tr['track']['artists']:
+                        artists += (artist['name'],)
+                    artists = ", ".join(artists)
+                    Track.objects.create(playlist_id=playlist.id, title=tr['track']['name'], artist=artists,
+                                         spotify_uri=tr['track']['uri'], order=track_order)
+                    track_order += 1
 
             # Add tracks to the playlist
             resp = sp.user_playlist_add_tracks(username, playlist.spotify_url, tracks_uris)
@@ -131,6 +127,21 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         self.check_object_permissions(request, playlist)
         Track.objects.filter(playlist_id=pk, in_playlist=True).update(votes=0)
         return HttpResponse("Votes reset")
+
+    @detail_route(methods=['delete'], url_path='clear')
+    def clear_playlist(self, request, pk):
+        playlist = Playlist.objects.get(pk=pk)
+        self.check_object_permissions(request, playlist)
+
+        playlist.original_spotify_url = ""
+        playlist.original_creator = ""
+        playlist.spotify_url = ""
+        playlist.save()
+
+        # Update removed tracks status to 'not in the current playlist'
+        Track.objects.filter(playlist_id=pk, in_playlist=True).update(in_playlist=False)
+
+        return HttpResponse(status=200)
 
     @detail_route(methods=['post'], url_path='request-song')
     def submit_song_request(self, request, pk):
@@ -196,11 +207,11 @@ class TrackViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_permissions(self):
-        if self.request.method != 'POST':
+        if self.request.method != 'PUT':
             self.permission_classes = (permissions.IsAdminUser,)
         return super(TrackViewSet, self).get_permissions()
 
-    @detail_route(methods=['post'], url_path='vote')
+    @detail_route(methods=['put'], url_path='vote')
     def vote(self, request, pk):
         voted_track = Track.objects.get(pk=pk)
         if not voted_track.voters.filter(pk=request.user.id).exists():

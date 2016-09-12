@@ -17,7 +17,7 @@ class Track (models.Model):
                                  related_name='playlist_of')
     title = models.CharField(max_length=100)
     artist = models.CharField(max_length=100)
-    spotify_uri = models.CharField(max_length=36)
+    spotify_uri = models.CharField(max_length=200)
     votes = models.IntegerField(default=0)
     order = models.IntegerField()
     request_user = models.ForeignKey('auth.User', related_name='requested', blank=True, null=True)

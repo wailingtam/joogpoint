@@ -27,7 +27,7 @@ class EstablishmentViewSet(viewsets.ModelViewSet):
                                             Q(city__icontains=query) | Q(country__icontains=query)).values()
         return JsonResponse(dict(results=list(data)))
 
-    @detail_route(methods=['post'], url_path='check-in')
+    @detail_route(methods=['put'], url_path='check-in')
     def check_in(self, request, pk):
         e = Establishment.objects.get(pk=pk)
         if e.customers.filter(pk=request.user.id).exists():
