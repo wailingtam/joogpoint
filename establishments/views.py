@@ -1,9 +1,9 @@
 from establishments.models import Establishment
 from establishments.serializers import EstablishmentSerializer
 from rest_framework import permissions, viewsets
+from rest_framework import response, status
 from establishments.permissions import IsOwnerOrReadOnly
 from rest_framework.decorators import detail_route, list_route
-from django.http import JsonResponse, HttpResponse
 from django.db.models import Q
 
 
@@ -23,18 +23,25 @@ class EstablishmentViewSet(viewsets.ModelViewSet):
     @list_route()
     def search(self, request):
         query = request.GET.get('query', '')
-        data = Establishment.objects.filter(Q(name__icontains=query) | Q(address__icontains=query) |
-                                            Q(city__icontains=query) | Q(country__icontains=query)).values()
-        return JsonResponse(dict(results=list(data)))
+        query.replace('+', ' ')
+        results = Establishment.objects.filter(Q(name__icontains=query) | Q(address__icontains=query) |
+                                            Q(city__icontains=query) | Q(country__icontains=query))
+        serializer = EstablishmentSerializer(results, context={'request': request}, many=True)
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
 
     @detail_route(methods=['put'], url_path='check-in')
     def check_in(self, request, pk):
-        e = Establishment.objects.get(pk=pk)
-        if e.customers.filter(pk=request.user.id).exists():
-            e.customers.remove(request.user)
-            return HttpResponse(request.user.username + " unchecked-in at " + e.name)
-        else:
-            e.customers.add(request.user)
-            return HttpResponse(request.user.username + " checked-in at " + e.name)
+        establishment = Establishment.objects.filter(pk=pk)
+        if establishment:
+            if establishment[0].customers.filter(pk=request.user.id).exists():
+                establishment[0].customers.remove(request.user)
+            else:
+                establishment[0].customers.add(request.user)
+            serializer = EstablishmentSerializer(establishment[0], context={'request': request})
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+
+        return response.Response(status=status.HTTP_404_NOT_FOUND)
+
+
 
 

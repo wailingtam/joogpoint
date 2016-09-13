@@ -5,7 +5,7 @@ from pygeocoder import Geocoder
 
 class EstablishmentSerializer(serializers.HyperlinkedModelSerializer):
     owner = serializers.ReadOnlyField(source='owner.username')
-    customers = serializers.ReadOnlyField(source='customers.username')
+    customers = serializers.HyperlinkedRelatedField(view_name='user-detail', read_only=True, many=True)
     establishment_playlist = serializers.HyperlinkedRelatedField(many=False, view_name='playlist-detail',
                                                                  read_only=True)
 
