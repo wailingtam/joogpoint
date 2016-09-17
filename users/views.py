@@ -1,5 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import viewsets, filters, permissions
+from rest_framework.decorators import list_route
+from rest_framework import response, status
 from .serializers import UserSerializer, ProfileSerializer
 from .models import Profile
 from users.permissions import IsOwnerOrReadOnly
@@ -42,3 +44,9 @@ class ProfileViewSet(viewsets.ModelViewSet):
     # Associating profiles with users
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @list_route()
+    def me(self, request):
+        my_profile = Profile.objects.get(user=request.user)
+        serializer = ProfileSerializer(my_profile, context={'request': request})
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
