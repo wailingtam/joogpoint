@@ -1,17 +1,16 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Profile
+from establishments.serializers import EstablishmentBasicInfoSerializer
+from polls.serializers import VotedOrRequestedTrackSerializer
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     owner_of = serializers.HyperlinkedRelatedField(
         many=True, view_name='establishment-detail', read_only=True)
-    checked_in = serializers.HyperlinkedRelatedField(
-        many=True, view_name='establishment-detail', read_only=True)
-    voted = serializers.HyperlinkedRelatedField(
-        many=True, view_name='track-detail', read_only=True)
-    requested = serializers.HyperlinkedRelatedField(
-        many=True, view_name='track-detail', read_only=True)
+    checked_in = EstablishmentBasicInfoSerializer(read_only=True, many=True)
+    voted = VotedOrRequestedTrackSerializer(read_only=True, many=True)
+    requested = VotedOrRequestedTrackSerializer(read_only=True, many=True)
     user_profile = serializers.HyperlinkedRelatedField(
         many=False, view_name='profile-detail', read_only=True)
 
@@ -27,6 +26,9 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class BasicUserInfoSerializer(serializers.HyperlinkedModelSerializer):
+    checked_in = EstablishmentBasicInfoSerializer(read_only=True, many=True)
+    voted = VotedOrRequestedTrackSerializer(read_only=True, many=True)
+    requested = VotedOrRequestedTrackSerializer(read_only=True, many=True)
 
     class Meta:
         model = User

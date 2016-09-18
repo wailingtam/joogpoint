@@ -9,6 +9,17 @@ class BasicTrackInfoSerializer(serializers.ModelSerializer):
         fields = ('id', 'title', 'artist', 'votes', 'order')
 
 
+class VotedOrRequestedTrackSerializer(serializers.ModelSerializer):
+    establishment = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Track
+        fields = ('id', 'title', 'artist', 'establishment')
+
+    def get_establishment(self, obj):
+        return obj.playlist.establishment.name
+
+
 class PlaylistSerializer(serializers.HyperlinkedModelSerializer):
     establishment = serializers.ReadOnlyField(source='establishment.name')
     playlist_of = BasicTrackInfoSerializer(many=True, read_only=True)
