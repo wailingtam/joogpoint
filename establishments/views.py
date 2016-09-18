@@ -41,7 +41,3 @@ class EstablishmentViewSet(viewsets.ModelViewSet):
             return response.Response(serializer.data, status=status.HTTP_200_OK)
 
         return response.Response(status=status.HTTP_404_NOT_FOUND)
-
-
-
-
