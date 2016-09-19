@@ -1,7 +1,7 @@
 from rest_framework import permissions, viewsets
 from rest_framework import response, status
 from rest_framework.decorators import detail_route, api_view, permission_classes
-import urllib
+import urllib.request
 import json
 from django.http import HttpResponse
 import spotipy
