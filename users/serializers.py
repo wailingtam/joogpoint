@@ -29,10 +29,11 @@ class BasicUserInfoSerializer(serializers.HyperlinkedModelSerializer):
     checked_in = EstablishmentBasicInfoSerializer(read_only=True, many=True)
     voted = VotedOrRequestedTrackSerializer(read_only=True, many=True)
     requested = VotedOrRequestedTrackSerializer(read_only=True, many=True)
+    owner_of = EstablishmentBasicInfoSerializer(read_only=True, many=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'checked_in', 'voted', 'requested')
+        fields = ('id', 'username', 'email', 'checked_in', 'voted', 'requested', 'owner_of')
 
 
 class ProfileSerializer(serializers.HyperlinkedModelSerializer):
