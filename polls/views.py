@@ -1,7 +1,7 @@
 from rest_framework import permissions, viewsets
 from rest_framework import response, status
 from rest_framework.decorators import detail_route, api_view, permission_classes
-import urllib.request
+from urllib import request
 import json
 from django.http import HttpResponse
 import spotipy
@@ -375,7 +375,7 @@ def song_search(request):
 def get_most_recent_track(playlist_pk):
     playlist = Playlist.objects.get(pk=playlist_pk)
     username = playlist.establishment.lastfm_username
-    results = urllib.request.urlopen("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=" + username +
+    results = request.urlopen("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=" + username +
                                      "&api_key=" + LASTFM_API_KEY + "&format=json&limit=1").read().decode("utf-8")
     dic = json.loads(results)
     data = {
