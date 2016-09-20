@@ -83,6 +83,11 @@ class PlaylistViewSet(viewsets.ModelViewSet):
     def reset_playlist(self, request, pk):
         playlist = Playlist.objects.get(pk=pk)
         self.check_object_permissions(request, playlist)
+
+        if not playlist.original_spotify_url:
+            return response.Response({"error": "You don't have a playlist set."},
+                                     status=status.HTTP_400_BAD_REQUEST)
+
         username = playlist.establishment.spotify_username
         scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
 
@@ -141,6 +146,10 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         if playlist:
             self.check_object_permissions(request, playlist[0])
 
+            if not playlist[0].original_spotify_url:
+                return response.Response({"error": "You don't have a playlist set."},
+                                         status=status.HTTP_400_BAD_REQUEST)
+
             playlist[0].original_spotify_url = ""
             playlist[0].original_creator = ""
             playlist[0].spotify_url = ""
@@ -158,6 +167,11 @@ class PlaylistViewSet(viewsets.ModelViewSet):
         playlist = Playlist.objects.filter(pk=pk)
         if playlist:
             self.check_object_permissions(request, playlist[0])
+
+            if not playlist[0].original_spotify_url:
+                return response.Response({"error": "You don't have a playlist set."},
+                                         status=status.HTTP_400_BAD_REQUEST)
+
             Track.objects.filter(playlist_id=pk, in_playlist=True).update(votes=0)
 
             serializer = PlaylistSerializer(playlist[0], context={'request': request})
