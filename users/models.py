@@ -24,8 +24,8 @@ class Profile(models.Model):
     spotify_username = models.CharField(max_length=50, blank=True)
     facebook_username = models.CharField(max_length=50, blank=True)
     twitter_username = models.CharField(max_length=15, blank=True)
-    fav_artists = models.TextField(blank=True, null=True)
-    fav_genres = models.TextField(blank=True, null=True)
+    fav_artists = models.TextField(blank=True)
+    fav_genres = models.TextField(blank=True)
 
     # representation of the object
     def __str__(self):
