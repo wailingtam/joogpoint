@@ -5,6 +5,7 @@ from rest_framework import response, status
 from establishments.permissions import IsOwnerOrReadOnly
 from rest_framework.decorators import detail_route, list_route
 from django.db.models import Q
+from pygeocoder import Geocoder
 
 
 class EstablishmentViewSet(viewsets.ModelViewSet):
@@ -19,6 +20,18 @@ class EstablishmentViewSet(viewsets.ModelViewSet):
     # Associating establishments with users
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        full_address = " ".join((instance.address, instance.city, instance.country))
+
+        if Geocoder.geocode(full_address).valid_address:
+            location = Geocoder.geocode(full_address)
+            instance.latitude = location.coordinates[0]
+            instance.longitude = location.coordinates[1]
+            instance.save()
+        # else error
+
 
     @list_route()
     def search(self, request):
