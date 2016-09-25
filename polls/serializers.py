@@ -6,7 +6,7 @@ class BasicTrackInfoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Track
-        fields = ('id', 'title', 'artist', 'votes', 'order')
+        fields = ('id', 'title', 'artist', 'votes', 'order', 'in_playlist')
 
 
 class VotedOrRequestedTrackSerializer(serializers.ModelSerializer):
