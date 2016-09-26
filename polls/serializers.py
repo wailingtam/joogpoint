@@ -33,10 +33,15 @@ class PlaylistSerializer(serializers.HyperlinkedModelSerializer):
 class TrackSerializer(serializers.HyperlinkedModelSerializer):
     playlist = serializers.ReadOnlyField(source='playlist.spotify_url')
     request_user = serializers.ReadOnlyField(source='request_user.username')
-    voters = serializers.HyperlinkedRelatedField(
-        many=True, view_name='user-detail', read_only=True)
+    voters = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Track
         fields = ('url', 'title', 'artist', 'playlist', 'spotify_uri', 'votes',
                   'order', 'request_user', 'voters')
+
+    def get_voters(self, obj):
+        users = []
+        for voter in obj.voters.all():
+            users.append({"username": voter.username, "id": voter.id})
+        return users

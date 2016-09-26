@@ -261,7 +261,7 @@ class TrackViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_permissions(self):
-        if self.request.method != 'PUT':
+        if self.request.method != 'PUT' and self.request.method != 'GET':
             self.permission_classes = (permissions.IsAdminUser,)
         return super(TrackViewSet, self).get_permissions()
 
