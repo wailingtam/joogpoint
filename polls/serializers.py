@@ -22,7 +22,7 @@ class VotedOrRequestedTrackSerializer(serializers.ModelSerializer):
 
 class PlaylistSerializer(serializers.HyperlinkedModelSerializer):
     establishment = serializers.ReadOnlyField(source='establishment.name')
-    playlist_of = BasicTrackInfoSerializer(many=True, read_only=True)
+    playlist_of = BasicTrackInfoSerializer(read_only=True)
 
     class Meta:
         model = Playlist
@@ -43,5 +43,5 @@ class TrackSerializer(serializers.HyperlinkedModelSerializer):
     def get_voters(self, obj):
         users = []
         for voter in obj.voters.all():
-            users.append({"username": voter.username, "id": voter.id})
+            users.append({"username": voter.username, "profile_id": voter.user_profile.id})
         return users
