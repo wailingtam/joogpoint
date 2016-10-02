@@ -22,7 +22,7 @@ class VotedOrRequestedTrackSerializer(serializers.ModelSerializer):
 
 class PlaylistSerializer(serializers.HyperlinkedModelSerializer):
     establishment = serializers.ReadOnlyField(source='establishment.name')
-    playlist_of = BasicTrackInfoSerializer(read_only=True)
+    playlist_of = BasicTrackInfoSerializer(many=True, read_only=True)
 
     class Meta:
         model = Playlist
