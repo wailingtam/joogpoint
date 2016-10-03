@@ -1,12 +1,19 @@
 from rest_framework import serializers
 from .models import Playlist, Track
+from django.contrib.auth.models import User
 
 
 class BasicTrackInfoSerializer(serializers.ModelSerializer):
+    request_user_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Track
-        fields = ('id', 'title', 'artist', 'votes', 'order', 'in_playlist')
+        fields = ('id', 'title', 'artist', 'votes', 'order', 'in_playlist', 'request_user_id')
+
+    def get_request_user_id(self, obj):
+        if isinstance(obj.request_user, User):
+            return obj.request_user.user_profile.id
+        return -1
 
 
 class VotedOrRequestedTrackSerializer(serializers.ModelSerializer):
