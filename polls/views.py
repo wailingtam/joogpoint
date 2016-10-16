@@ -187,7 +187,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
             return response.Response(status=status.HTTP_404_NOT_FOUND)
 
         playlist = playlist[0]
-        if playlist.explicit_lyrics or not request.data['explicit_lyrics']:
+        if playlist.explicit_lyrics or not request.data['explicit_lyrics'] or request.data['explicit_lyrics'] == "false":
             if not Track.objects.filter(playlist=playlist, spotify_uri=request.data['spotify_uri'], in_playlist=True):
                 username = playlist.establishment.spotify_username
                 scope = 'playlist-read-private playlist-modify-public playlist-modify-private'
@@ -222,7 +222,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
 
                 except:
                     # Can't get token from user
-                    return response.Response({"error": "Can't get access from the the establishment's owner Spotify "
+                    return response.Response({"error": "Can't get access from the establishment's owner Spotify "
                                                        "account"},
                                              status=status.HTTP_400_BAD_REQUEST)
             else:
