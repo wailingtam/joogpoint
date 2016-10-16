@@ -23,3 +23,4 @@ class Track (models.Model):
     request_user = models.ForeignKey('auth.User', related_name='requested', blank=True, null=True)
     voters = models.ManyToManyField('auth.User', related_name='voted', blank=True)
     in_playlist = models.BooleanField(default=True)
+    cover_image_url = models.CharField(max_length=200)

@@ -8,7 +8,7 @@ class BasicTrackInfoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Track
-        fields = ('id', 'title', 'artist', 'votes', 'order', 'in_playlist', 'request_user_id')
+        fields = ('id', 'title', 'artist', 'votes', 'order', 'in_playlist', 'request_user_id', 'cover_image_url')
 
     def get_request_user_id(self, obj):
         if isinstance(obj.request_user, User):
@@ -21,7 +21,7 @@ class VotedOrRequestedTrackSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Track
-        fields = ('id', 'title', 'artist', 'establishment')
+        fields = ('id', 'title', 'artist', 'establishment', 'cover_image_url')
 
     def get_establishment(self, obj):
         return obj.playlist.establishment.name
@@ -45,7 +45,7 @@ class TrackSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Track
         fields = ('url', 'title', 'artist', 'playlist', 'spotify_uri', 'votes',
-                  'order', 'request_user', 'voters')
+                  'order', 'request_user', 'voters', 'cover_image_url')
 
     def get_voters(self, obj):
         users = []

@@ -37,7 +37,8 @@ class PlaylistViewSet(viewsets.ModelViewSet):
                     sp = spotipy.Spotify(auth=token)
                     # Get tracks from the original playlist
                     tracks = sp.user_playlist(data['owner'], data['spotify_url'],
-                                              fields="name, tracks.items(is_local, track(name,uri,artists(name)))")
+                                              fields="name, tracks.items(is_local, track(name, uri, artists(name), album(images)))")
+
                     # Create a new playlist for the copy
                     pl = sp.user_playlist_create(username, "jp-" + tracks['name'], public=False)
 
@@ -55,7 +56,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
                                 artists += (artist['name'],)
                             artists = ", ".join(artists)
                             Track.objects.create(playlist_id=pk, title=tr['track']['name'], artist=artists,
-                                                 spotify_uri=tr['track']['uri'], order=track_order)
+                                                 spotify_uri=tr['track']['uri'], order=track_order, cover_image_url=tr['track']['album']['images'][2]['url'])
                             track_order += 1
 
                     # Add tracks to the new playlist
@@ -112,7 +113,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
 
                 # Get tracks from the original playlist
                 tracks = sp.user_playlist(playlist.original_creator, playlist.original_spotify_url,
-                                          fields="name, tracks.items(is_local, track(name,uri,artists(name)))")
+                                          fields="name, tracks.items(is_local, track(name, uri, artists(name), album(images)))")
 
                 # Get the tracks uris from the original playlist and create their track instances
                 tracks_uris = []
@@ -125,7 +126,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
                             artists += (artist['name'],)
                         artists = ", ".join(artists)
                         Track.objects.create(playlist_id=playlist.id, title=tr['track']['name'], artist=artists,
-                                             spotify_uri=tr['track']['uri'], order=track_order)
+                                             spotify_uri=tr['track']['uri'], order=track_order, cover_image_url=tr['track']['album']['images'][2]['url'])
                         track_order += 1
 
                 # Add tracks to the playlist
@@ -205,7 +206,7 @@ class PlaylistViewSet(viewsets.ModelViewSet):
                         no_songs = Track.objects.filter(playlist=playlist.id, in_playlist=True).count()
                         tr = Track.objects.create(playlist_id=playlist.id, title=request.data['title'],
                                                   artist=request.data['artist'], spotify_uri=request.data['spotify_uri'],
-                                                  order=no_songs, votes=1, request_user=request.user)
+                                                  order=no_songs, votes=1, request_user=request.user, cover_image_url=request.data['cover_image_url'])
                         tr.voters.add(request.user)
 
                         # sort playlist
@@ -393,7 +394,8 @@ def get_most_recent_track(playlist_pk):
                                      "&api_key=" + LASTFM_API_KEY + "&format=json&limit=1").json()
     data = {
         'now_playing': True,
-        'spotify_uri': ""
+        'spotify_uri': "",
+        'order': -1
     }
     for t in dic['recenttracks']['track']:
         # if there are the currently playing song and the last played song (>1)
@@ -415,6 +417,7 @@ def get_most_recent_track(playlist_pk):
             data['spotify_uri'] = track_in_playlist[0].spotify_uri
             data['name'] = track_in_playlist[0].title
             data['artist'] = track_in_playlist[0].artist
+            data['order'] = track_in_playlist[0].order
             break
 
     # If couldn't find song with a title + artist search at spotify
@@ -442,7 +445,7 @@ def get_most_recent_track(playlist_pk):
             data['spotify_uri'] = found_track[0].spotify_uri
             data['name'] = found_track[0].title
             data['artist'] = found_track[0].artist
-
+            data['order'] = found_track[0].order
             # else display error finding current song
 
     return data
